@@ -1,0 +1,38 @@
+[
+  {
+    "id": "factory",
+    "name": "Factory",
+    "c": null,
+    "chip": "linear-gradient(135deg,#d9c39a,#6b5a44)"
+  },
+  {
+    "id": "dune",
+    "name": "Dune",
+    "c": 13208108,
+    "chip": "linear-gradient(135deg,#ffe2a0 0%,#d9982e 45%,#7a4a12 100%)"
+  },
+  {
+    "id": "cobalt",
+    "name": "Cobalt",
+    "c": 1924832,
+    "chip": "linear-gradient(135deg,#a8ccff 0%,#2a6af0 45%,#0b2a7a 100%)"
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "c": 13378584,
+    "chip": "linear-gradient(135deg,#ffb09a 0%,#d8301e 45%,#6e0c06 100%)"
+  },
+  {
+    "id": "jade",
+    "name": "Jade",
+    "c": 1155178,
+    "chip": "linear-gradient(135deg,#9ef0c8 0%,#16a870 45%,#05482e 100%)"
+  },
+  {
+    "id": "phantom",
+    "name": "Phantom",
+    "c": 2237740,
+    "chip": "linear-gradient(135deg,#9aa0ab 0%,#33363e 45%,#0b0c0f 100%)"
+  }
+]

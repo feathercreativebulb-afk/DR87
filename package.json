@@ -1,0 +1,33 @@
+{
+  "name": "dr87",
+  "private": true,
+  "description": "Dust Runner '87 — arcade racing across seven alien worlds. One web build for web/PWA, iOS, Android, Steam, macOS and Windows.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @dr87/web",
+    "build": "npm run build -w @dr87/web",
+    "preview": "npm run preview -w @dr87/web",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "import:artifact": "python3 tools/import-artifact.py",
+    "mobile:sync": "npm run build && npm run sync -w @dr87/mobile",
+    "desktop:dev": "npm run dev -w @dr87/desktop",
+    "desktop:build": "npm run build -w @dr87/desktop"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.55.0",
+    "@types/node": "22.15.3",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vitest": "3.1.4"
+  }
+}

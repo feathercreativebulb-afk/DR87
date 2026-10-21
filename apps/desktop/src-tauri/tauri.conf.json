@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dust Runner '87",
+  "version": "0.1.0",
+  "identifier": "com.kiboko.dustrunner87",
+  "build": {
+    "frontendDist": "../../web/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev -w @dr87/web",
+    "beforeBuildCommand": "npm run build -w @dr87/web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Dust Runner '87",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 540,
+        "resizable": true,
+        "center": true,
+        "backgroundColor": "#1d1210"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "RacingGame",
+    "shortDescription": "Arcade racing across seven alien worlds.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

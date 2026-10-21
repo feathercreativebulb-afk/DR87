@@ -1,0 +1,13 @@
+{
+  "name": "@dr87/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "description": "The game. Phase 1 runs the imported legacy script; phase 2 splits it into sim/, render/, ui/, audio/ around a fixed 60 Hz loop.",
+  "dependencies": {
+    "@fontsource/bungee": "5.2.6",
+    "@fontsource/chakra-petch": "5.2.6",
+    "three": "0.128.0"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "saver": {
+    "name": "Battery saver",
+    "note": "30 fps, no shadows",
+    "fps": 30,
+    "dpr": 1,
+    "shadow": 0,
+    "shadowEvery": 0,
+    "lines": false,
+    "fx": 0.5
+  },
+  "balanced": {
+    "name": "Balanced",
+    "note": "60 fps, light shadows",
+    "fps": 60,
+    "dpr": 1.25,
+    "shadow": 512,
+    "shadowEvery": 2,
+    "lines": true,
+    "fx": 0.8
+  },
+  "high": {
+    "name": "High",
+    "note": "Full rate and detail",
+    "fps": 0,
+    "dpr": 1.75,
+    "shadow": 1024,
+    "shadowEvery": 1,
+    "lines": true,
+    "fx": 1
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@dr87/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "iOS and Android apps: Capacitor wraps the web build (apps/web/dist).",
+  "scripts": {
+    "add:ios": "cap add ios",
+    "add:android": "cap add android",
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "run:ios": "cap run ios",
+    "run:android": "cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.4.2",
+    "@capacitor/core": "7.4.2",
+    "@capacitor/haptics": "7.0.2",
+    "@capacitor/ios": "7.4.2",
+    "@capacitor/preferences": "7.0.2",
+    "@capacitor/screen-orientation": "7.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.4.2"
+  }
+}

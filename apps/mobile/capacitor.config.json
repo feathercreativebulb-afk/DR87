@@ -1,0 +1,18 @@
+{
+  "appId": "com.kiboko.dustrunner87",
+  "appName": "Dust Runner '87",
+  "webDir": "../web/dist",
+  "backgroundColor": "#1d1210",
+  "ios": {
+    "contentInset": "never",
+    "preferredContentMode": "mobile",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "android": {
+    "backgroundColor": "#1d1210",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 0 }
+  }
+}

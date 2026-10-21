@@ -1,0 +1,38 @@
+[
+  {
+    "id": "dune",
+    "kind": "paint",
+    "pts": 2,
+    "name": "Dune paint"
+  },
+  {
+    "id": "hard",
+    "kind": "level",
+    "pts": 3,
+    "name": "Hard rivals"
+  },
+  {
+    "id": "cobalt",
+    "kind": "paint",
+    "pts": 5,
+    "name": "Cobalt paint"
+  },
+  {
+    "id": "ember",
+    "kind": "paint",
+    "pts": 8,
+    "name": "Ember paint"
+  },
+  {
+    "id": "jade",
+    "kind": "paint",
+    "pts": 11,
+    "name": "Jade paint"
+  },
+  {
+    "id": "phantom",
+    "kind": "paint",
+    "pts": 15,
+    "name": "Phantom paint"
+  }
+]

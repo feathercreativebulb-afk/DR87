@@ -1,0 +1,235 @@
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <div class="hud" id="hudL">
+    <div class="panel stat"><span class="lbl">Pos</span><span class="big" id="pos">4<small>/4</small></span></div>
+    <div class="panel stat"><span class="lbl">Lap</span><span class="big" id="lap">1<small>/3</small></span></div>
+    <div class="panel stat gaps" id="gaps" hidden><span class="lbl">Gap</span><span id="gapA" class="gapln up">–</span><span id="gapB" class="gapln dn">–</span></div>
+  </div>
+  <div class="hud panel" id="hudC">
+    <span id="time">0:00.00</span>
+    <span id="laps"><span>Last <b id="last">–</b></span><span>Best <b id="best">–</b></span></span>
+  </div>
+  <div class="hud panel" id="hudR"><canvas id="map"></canvas></div>
+  <div class="hud panel" id="speedo"><span id="kmh">0</span><span class="lbl">km/h</span><div id="bar"><i></i></div></div>
+  <div class="hud" id="boostTag">BOOST</div>
+  <div class="hud panel" id="drift"><div class="dbar"><i id="driftBar"></i></div><span class="dlbl" id="driftLbl">DRIFT</span></div>
+  <div class="hud" id="draftTag">SLIPSTREAM</div>
+  <div class="hud" id="styleTag"></div>
+  <div class="hud panel" id="abil" hidden><div class="row1"><span id="abilName">Nitro</span><span id="abilKey">E</span></div><div class="meter"><i id="abilBar"></i></div></div>
+  <div class="hud panel" id="ghostDelta" hidden></div>
+  <div class="hud" id="toast"></div>
+  <div class="hud panel" id="tip" aria-live="polite"></div>
+
+  <div id="topBtns">
+    <button class="mini" id="pauseBtn" aria-label="Pause" title="Pause (Esc or P)" hidden>Ⅱ</button>
+    <button class="mini" id="resetBtn" aria-label="Put car back on track" title="Back on track (R)">↺</button>
+    <button class="mini" id="camBtn" aria-label="Change camera" title="Camera (C)">◎</button>
+    <button class="mini" id="muteBtn" aria-label="Toggle sound" title="Sound (M)">♪</button>
+  </div>
+
+  <div id="insp" hidden>
+    <div class="panel" id="ipPanel" role="region" aria-label="Inspector">
+      <div class="ipHead">
+        <div><div class="ttl">INSPECTOR</div><div class="sub">UFO · admin view</div></div>
+        <span class="grow"></span>
+        <button class="ipBtn" id="ipMin" aria-expanded="true" title="Collapse panel (H)">–</button>
+        <button class="ipBtn" id="ipExit" title="Leave the inspector (Esc or I)">Exit</button>
+      </div>
+      <div class="ipBody">
+        <div class="ipSec"><div class="lbl2">World &amp; track <kbd>[ ]  1–7</kbd></div><div class="ipChips" id="ipWorlds"></div></div>
+        <div class="ipSec"><div class="lbl2">Vehicle <kbd>V</kbd></div><div class="ipChips" id="ipCars"></div>
+          <div class="ipRow"><button class="ipBtn" id="ipBring" title="Park the vehicle on the road under the UFO (B)">Bring under UFO</button><button class="ipBtn go" id="ipDrive" title="Race this world with this vehicle (Enter)">Drive it ▸</button></div></div>
+        <div class="ipSec"><div class="lbl2">Demo race <kbd>Y · U</kbd></div>
+          <div class="ipRow"><button class="ipBtn go" id="ipDemo" title="Every car on autopilot, laps with no finish (Y)">Start demo race</button><button class="ipBtn" id="ipFollow" title="Ride along with the leader or any car (U) · move to fly free" disabled>Follow: off</button></div>
+          <div class="ipBoard" id="ipBoard" hidden></div></div>
+        <div class="ipSec"><div class="lbl2">Light emitter <kbd>L · K · T</kbd></div>
+          <div class="ipRow"><button class="ipBtn" id="ipLamp" aria-pressed="true">Glow on</button><button class="ipBtn" id="ipBeam" aria-pressed="true">Spot beam on</button></div>
+          <div class="ipRow" id="ipCols"></div>
+          <label class="ipRange"><span>Intensity</span><input type="range" id="ipInt" min="0" max="300" step="5" value="100"><output id="ipIntV">100%</output></label>
+          <label class="ipRange"><span>Reach</span><input type="range" id="ipReach" min="25" max="400" step="5" value="100"><output id="ipReachV">100%</output></label></div>
+        <div class="ipSec"><div class="lbl2">View <kbd>C · O · G</kbd></div>
+          <div class="ipRow"><button class="ipBtn" id="ipCam">Chase cam</button><button class="ipBtn" id="ipOver" title="Climb until the whole track fits (O)">Overview</button></div>
+          <div class="ipRow"><button class="ipBtn" id="ipFog">Fog: lifts with height</button><button class="ipBtn" id="ipRiv" aria-pressed="true">Rivals shown</button><button class="ipBtn" id="ipInk" aria-pressed="true">Comic ink</button><button class="ipBtn" id="ipProbeB" aria-pressed="true">Probe</button></div></div>
+        <div class="ipSec"><div class="lbl2" id="ipProbeL">Under the beam</div><div class="ipRead" id="ipProbe"><b>Probe</b><span>reading…</span></div></div>
+        <div class="ipSec"><div class="lbl2">Position &amp; render</div><div class="ipRead" id="ipStats"></div></div>
+        <div class="ipKeys"><kbd>W</kbd><kbd>S</kbd> fly · <kbd>A</kbd><kbd>D</kbd> turn · <kbd>Q</kbd><kbd>E</kbd> hover sideways · <kbd>R</kbd>/<kbd>Space</kbd> up · <kbd>F</kbd>/<kbd>X</kbd> down · hold <kbd>Shift</kbd> turbo 400 km/h · <kbd>Y</kbd> demo race · <kbd>U</kbd> follow · <kbd>N</kbd> next sector · <kbd>Home</kbd> start line · drag to look around, wheel to zoom</div>
+      </div>
+    </div>
+    <div id="ipReticle"></div>
+    <div class="panel" id="ipSpeed"><span id="ipKmh">0</span><span class="lbl">km/h</span><span id="ipMode">HOVER</span><span id="ipAlt">0 m</span></div>
+    <div id="ipTouch">
+      <div class="ipPad l"><button class="ipK" data-k="w" style="grid-area:f">▲</button><button class="ipK" data-k="a" style="grid-area:tl">↶</button><button class="ipK" data-k="s" style="grid-area:b">▼</button><button class="ipK" data-k="d" style="grid-area:tr">↷</button><button class="ipK" data-k="q" style="grid-area:sl">◀</button><button class="ipK" data-k="e" style="grid-area:sr">▶</button></div>
+      <div class="ipPad r"><button class="ipK" data-k="r" style="grid-area:up">UP</button><button class="ipK" id="ipTurboT" aria-pressed="false" style="grid-area:turbo">TURBO</button><button class="ipK" data-k="f" style="grid-area:dn">DOWN</button><button class="ipK" id="ipLampT" style="grid-area:lamp">LIGHT</button></div>
+    </div>
+  </div>
+  <div id="touch">
+    <div class="stickzone" id="stickZone" aria-label="Steering stick: drag left and right to steer, up for gas, down to brake">
+      <div class="stick" id="stick"><div class="stick-ring"></div><div class="stick-knob" id="stickKnob"></div></div>
+    </div>
+    <div class="pad rcol">
+      <div class="tbtn drift" data-k="hand" aria-label="Drift (handbrake)">DRIFT</div>
+      <div class="tbtn abil" id="abilBtn" aria-label="Use ability">★</div>
+      <div class="tbtn brk" data-k="brake">BRAKE</div>
+      <div class="tbtn gas" data-k="gas">GAS</div>
+    </div>
+  </div>
+
+  <div class="screen" id="menu">
+    <header class="mhead">
+      <div class="logo">Dust <span>Runner</span> '87</div>
+      <nav class="steps" aria-label="Steps">
+        <button class="step" id="stepBtn1" aria-current="step"><i>1</i><b>Vehicle</b></button>
+        <span class="stepline" id="stepLine"></span>
+        <button class="step" id="stepBtn2"><i>2</i><b>World <em>&amp; mode</em></b></button>
+      </nav>
+      <button class="gear" id="setBtn" aria-label="Settings: graphics, sound, your own model" aria-expanded="false" aria-controls="setSheet">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </header>
+
+    <section class="mstep" id="stepV" aria-label="Step 1: choose your vehicle">
+      <div class="stage" id="vStage">
+        <div class="shead">
+          <span class="kicker" id="vKick">Rally truck · Earth</span>
+          <div class="sname" id="vName">Sirocco RX</div>
+          <div class="stag" id="vTag"></div>
+        </div>
+        <div class="sarrows">
+          <button class="arrow" id="vPrev" aria-label="Previous vehicle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="arrow" id="vNext" aria-label="Next vehicle"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+        <div class="vtabs" role="tablist" aria-label="Vehicles">
+          <button class="vpill" id="vTruck" role="tab" aria-selected="true" data-v="truck">Sirocco<span class="sr" id="truckSub">Ready</span></button>
+          <button class="vpill" id="vTank" role="tab" aria-selected="false" data-v="tank" disabled>Bulwark<span class="sr" id="tankSub">Loading…</span></button>
+          <button class="vpill" id="vWalker" role="tab" aria-selected="false" data-v="walker" disabled>Strider<span class="sr" id="walkerSub">Loading…</span></button>
+          <button class="vpill" id="vJet" role="tab" aria-selected="false" data-v="jet" disabled>Kestrel<span class="sr" id="jetSub">Loading…</span></button>
+          <button class="vpill" id="vQuad" role="tab" aria-selected="false" data-v="quad" disabled>Burro<span class="sr" id="quadSub">Loading…</span></button>
+          <button class="vpill" id="vRally" role="tab" aria-selected="false" data-v="rally" disabled>Fennec<span class="sr" id="rallySub">Loading…</span></button>
+          <button class="vpill" id="vHover" role="tab" aria-selected="false" data-v="hover" disabled>Cicada<span class="sr" id="hoverSub">Loading…</span></button>
+          <button class="vpill" id="vDrone" role="tab" aria-selected="false" data-v="drone" disabled>Nexus<span class="sr" id="droneSub">Loading…</span></button>
+        </div>
+      </div>
+      <aside class="side">
+        <div class="panel box">
+          <div class="lbl2">Capabilities</div>
+          <div class="stats" id="vStats"></div>
+        </div>
+        <div class="duo">
+          <div class="box abilcard"><div class="lbl2">Signature ability</div><div class="big2" id="vAbil">Nitro</div><div class="small2" id="vAbilText"></div></div>
+          <div class="box homecard"><div class="lbl2">Home world</div><div class="mid2" id="vHome">Mojave Basin</div><div class="small2">Its hazards bite this vehicle less.</div></div>
+        </div>
+        <div class="panel box custom">
+          <div class="ctabs" role="tablist" aria-label="Customise">
+            <button role="tab" aria-selected="true" class="ctab">Body paint</button>
+            <button role="tab" aria-selected="false" class="ctab" disabled>Upgrades <span class="soon">Soon</span></button>
+            <button role="tab" aria-selected="false" class="ctab" disabled>Add-ons <span class="soon">Soon</span></button>
+          </div>
+          <div class="skins" id="skinGrid" role="radiogroup" aria-label="Body paint"></div>
+        </div>
+        <div class="foot">
+          <span class="sel" id="vSel"></span>
+          <button class="cta" id="toWorld">Choose world <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </aside>
+    </section>
+
+    <section class="mstep" id="stepW" aria-label="Step 2: choose world and mode" hidden>
+      <div class="stage" id="wStage">
+        <div class="wcap">
+          <span class="kicker" id="wKick">Earth · built by the rally crews</span>
+          <div class="sname" id="wName">Mojave Basin</div>
+          <p class="wblurb" id="wBlurb"></p>
+          <div class="chips" id="wChips"></div>
+        </div>
+      </div>
+      <aside class="side">
+        <div class="panel box you">
+          <span class="lbl2">Your vehicle</span>
+          <span class="youname" id="youName">Sirocco RX</span>
+          <span class="youmeta" id="youMeta"></span>
+          <button class="link" id="backV">Change</button>
+        </div>
+        <div class="lbl2 out">World</div>
+        <div class="wcards" id="wpick" role="radiogroup" aria-label="World"></div>
+        <div class="lbl2 out">Mode</div>
+        <div class="modes" id="mpick" role="radiogroup" aria-label="Mode">
+          <button class="mode" role="radio" aria-checked="true" data-m="single"><b>Single race</b><span>This world · 3 laps</span></button>
+          <button class="mode" role="radio" aria-checked="false" data-m="tour"><b>Grand Tour</b><span>All 7 worlds · points</span></button>
+        </div>
+        <div class="lbl2 out">Difficulty</div>
+        <div class="seg" id="lpick" role="radiogroup" aria-label="Difficulty">
+          <button class="lopt" role="radio" aria-checked="false" data-l="easy">Easy</button>
+          <button class="lopt" role="radio" aria-checked="false" data-l="normal">Normal</button>
+          <button class="lopt" role="radio" aria-checked="false" data-l="hard">Hard</button>
+        </div>
+        <div class="rivals"><span id="lvNote"></span><span class="rline"><span id="rivalLine"></span><button class="shuf" id="shufBtn" title="Draw a new mix of rival vehicles">Shuffle</button></span></div>
+        <div class="goal" id="goalLine"></div>
+        <button class="cta go" id="startBtn">Start race</button>
+      </aside>
+    </section>
+
+    <div class="sheet panel" id="setSheet" role="dialog" aria-label="Settings" hidden>
+      <div class="lbl2">Graphics</div>
+      <div class="seg g3" id="gpick" role="radiogroup" aria-label="Graphics">
+        <button class="gopt" role="radio" aria-checked="false" data-q="saver"><b>Saver</b><span>30 fps · cool phone</span></button>
+        <button class="gopt" role="radio" aria-checked="false" data-q="balanced"><b>Balanced</b><span>60 fps</span></button>
+        <button class="gopt" role="radio" aria-checked="false" data-q="high"><b>High</b><span>Full detail</span></button>
+      </div>
+      <div class="lbl2">Controls</div>
+      <div class="seg g3" id="cpick" role="radiogroup" aria-label="Controls" style="grid-template-columns:1fr 1fr">
+        <button class="gopt" role="radio" aria-checked="false" data-c="assist"><b>Assisted</b><span>car holds the line · you pick lanes & drift</span></button>
+        <button class="gopt" role="radio" aria-checked="false" data-c="manual"><b>Manual</b><span>full control</span></button>
+      </div>
+      <div class="lbl2">Sound</div>
+      <div class="row"><button class="ghost tog" id="sndBtn" aria-pressed="true">Sound on</button><button class="ghost tog" id="musBtn" aria-pressed="true" title="Midnight Velocity, the game's theme">Music on</button></div>
+      <div class="vols">
+        <label class="vol"><span>Sound</span><input type="range" id="sfxVol" min="0" max="100" step="5" aria-label="Sound effects volume"><output id="sfxVolV">100%</output></label>
+        <label class="vol"><span>Music</span><input type="range" id="musVol" min="0" max="100" step="5" aria-label="Music volume"><output id="musVolV">100%</output></label>
+      </div>
+      <div class="lbl2">Look</div>
+      <button class="ghost tog" id="lookBtn" aria-pressed="true" title="Ink lines, stepped tones, halftone shadows and grain — the printed-comic look">Comic ink on</button>
+      <div class="lbl2">Surprises</div>
+      <button class="ghost tog" id="surBtn" aria-pressed="true" title="Meteor showers and other things that drop on a race unannounced">Surprises on</button>
+      <div class="lbl2">Your own model</div>
+      <div class="row">
+        <button class="ghost" id="pickBtn">Load a model (GLB, glTF, FBX)</button>
+        <input type="file" id="carFile" multiple hidden>
+      </div>
+      <div class="carinfo" id="carInfo" hidden>
+        <span id="carName"></span>
+        <em id="carStatus"></em>
+        <button class="mini2" id="flipBtn" title="Turn the model 90°">Rotate</button>
+        <button class="mini2" id="stockBtn" title="Back to the stock vehicle">Remove</button>
+      </div>
+      <div class="keys" id="keyHint"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive · <kbd>Space</kbd> handbrake · <kbd>E</kbd> ability · <kbd>C</kbd> camera · <kbd>R</kbd> back on track · <kbd>Esc</kbd> pause</div>
+    </div>
+  </div>
+
+  <div class="screen" id="pauseScr" hidden>
+    <div class="card">
+      <span class="kicker" id="pauseInfo">Lap 1/3 · 4th</span>
+      <div id="pauseTitle">Paused</div>
+      <div class="row">
+        <button class="cta" id="resumeBtn">Resume</button>
+        <button class="ghost" id="restartBtn">Restart race</button>
+        <button class="ghost" id="quitBtn">Main menu</button>
+      </div>
+      <div class="row" id="pauseQ"><span class="lbl">Graphics</span><button class="mini2 gopt" data-q="saver" aria-checked="false">Saver</button><button class="mini2 gopt" data-q="balanced" aria-checked="false">Balanced</button><button class="mini2 gopt" data-q="high" aria-checked="false">High</button></div>
+      <div class="keys"><kbd>Esc</kbd> or <kbd>P</kbd> resume · <kbd>Enter</kbd> restart</div>
+    </div>
+  </div>
+
+  <div id="finBanner" hidden aria-live="polite"><div class="chk"></div><div id="finPlace">1<small>st</small></div><div id="finLine">Stage win</div><div class="chk"></div></div>
+  <canvas id="confetti" hidden aria-hidden="true"></canvas>
+  <div class="screen" id="res" hidden>
+    <div class="card">
+      <span class="kicker" id="resKicker">Stage complete</span>
+      <div id="resTitle">1st</div>
+      <div class="panel tbl"><table id="resTable"></table></div>
+      <div class="mline" id="resMedal" hidden></div>
+      <div class="goal" id="resGoal"></div>
+      <div class="row"><button class="cta" id="againBtn">Race again</button><button class="ghost" id="resMenuBtn">Main menu</button></div>
+    </div>
+  </div>
+</div>

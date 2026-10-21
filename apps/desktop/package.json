@@ -1,0 +1,14 @@
+{
+  "name": "@dr87/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "macOS, Windows and Linux/Steam Deck app: Tauri 2 wraps the web build (apps/web/dist).",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon src-tauri/icons/icon.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.8.4"
+  }
+}

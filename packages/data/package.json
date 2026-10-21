@@ -1,0 +1,8 @@
+{
+  "name": "@dr87/data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "description": "Game data tables (vehicles, skins, unlocks, medals, quality presets) as JSON. Worlds move here in phase 2."
+}

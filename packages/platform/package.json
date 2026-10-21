@@ -1,0 +1,8 @@
+{
+  "name": "@dr87/platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "description": "The only code that knows which shell it runs in: web/PWA, Capacitor (iOS/Android) or Tauri (desktop)."
+}

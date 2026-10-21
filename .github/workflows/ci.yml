@@ -1,7 +1,7 @@
 name: CI and deploy
 
 # Every push and PR: typecheck, unit tests, build, smoke test in a real browser.
-# Pushes to main also publish the web build to GitHub Pages — that's the shareable link.
+# Pushes to main (and manual runs on main) also publish the web build to GitHub Pages — that's the shareable link.
 on:
   push:
     branches: [main]
@@ -21,8 +21,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -33,12 +33,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-pages-artifact@v3
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: apps/web/dist
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: check
     runs-on: ubuntu-latest
     environment:

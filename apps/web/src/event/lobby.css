@@ -1,0 +1,157 @@
+/* Halloween Night lobby — sits over the game canvas; the 3D garage (your vehicle turning on Hollow Ridge) shows between the panels */
+#ev {
+  --ink: #f6eeff; --dim: #b9a8d4; --faint: #7d6c99;
+  --panel: rgba(16, 9, 30, .84); --edge: rgba(176, 123, 255, .28); --line: rgba(176, 123, 255, .16);
+  --orange: #ff8a1f; --orange2: #ffb24a; --purple: #9d6bff; --green: #9cff5a;
+  --disp: 'Bungee', Impact, sans-serif; --body: 'Chakra Petch', system-ui, sans-serif;
+  position: fixed; inset: 0; z-index: 30; pointer-events: none; color: var(--ink); font: 500 15px/1.4 var(--body);
+}
+#ev [hidden] { display: none !important; }
+#ev button { font: inherit; color: inherit; cursor: pointer; }
+#ev button:disabled { cursor: default; opacity: .45; }
+#ev button:focus-visible, #ev [tabindex]:focus-visible, #ev input:focus-visible { outline: 2px solid var(--orange2); outline-offset: 2px; }
+body.evOverlay #menu, body.evOverlay .hud, body.evOverlay #pauseBtn { display: none !important; }
+
+.evPanel { pointer-events: auto; position: absolute; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#ev h1 { margin: 0; font: 400 26px/1 var(--disp); letter-spacing: .02em; color: var(--orange); text-shadow: 0 0 22px rgba(255, 138, 31, .35); }
+#ev h1 small { display: block; margin-top: 6px; font: 600 12px/1 var(--body); letter-spacing: .32em; text-transform: uppercase; color: var(--purple); }
+#ev h2 { margin: 18px 0 8px; font: 700 11px/1 var(--body); letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
+#ev table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+
+/* boot */
+.evBootP { left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 22px 28px; text-align: center; color: var(--dim); }
+
+/* sign-up: arcade name entry */
+.evSign { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 32px)); padding: 28px 26px 22px; text-align: center; }
+.evSign .lead { color: var(--dim); margin: 14px 0 18px; }
+.evTagIn { display: flex; justify-content: center; gap: 14px; }
+.evSlot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.evSlot button { width: 64px; height: 36px; border: 0; border-radius: 10px; background: rgba(157, 107, 255, .14); color: var(--dim); font-size: 14px; }
+.evSlot button:hover { background: rgba(157, 107, 255, .3); color: var(--ink); }
+.evSlot b { display: grid; place-items: center; width: 64px; height: 78px; border-radius: 12px; border: 2px solid var(--line); background: #0c0718;
+  font: 400 46px/1 var(--disp); color: var(--orange2); cursor: pointer; }
+.evSlot.on b { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(255, 138, 31, .16), 0 0 26px rgba(255, 138, 31, .3); animation: evBlink 1s steps(2) infinite; }
+@keyframes evBlink { 50% { color: #fff3dc; } }
+.evPinL { display: block; margin: 20px auto 0; max-width: 260px; text-align: left; font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.evPinL span { display: block; font-weight: 500; font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--faint); margin: 2px 0 8px; }
+.evPinL input { width: 100%; box-sizing: border-box; height: 48px; border-radius: 12px; border: 2px solid var(--line); background: #0c0718; color: var(--ink);
+  font: 400 26px/1 var(--disp); letter-spacing: .5em; text-align: center; }
+.evMsg { min-height: 20px; margin: 10px 0 0; color: var(--orange2); font-weight: 600; }
+.evFine { margin: 10px 0 0; font-size: 12px; color: var(--faint); }
+
+/* buttons */
+.evBig, .evGhost { display: block; width: 100%; min-height: 54px; border-radius: 14px; padding: 10px 16px; text-align: center; }
+.evBig { margin-top: 18px; border: 0; background: linear-gradient(180deg, var(--orange2), var(--orange)); color: #2a1200 !important;
+  font: 400 20px/1.1 var(--disp) !important; letter-spacing: .03em; box-shadow: 0 8px 26px rgba(255, 138, 31, .35), inset 0 -3px 0 rgba(0, 0, 0, .18); }
+.evBig:hover:not(:disabled) { filter: brightness(1.08); }
+.evGhost { margin-top: 10px; border: 1.5px solid var(--edge); background: rgba(157, 107, 255, .1); font-weight: 700 !important; letter-spacing: .06em; text-transform: uppercase; }
+.evGhost:hover { background: rgba(157, 107, 255, .2); }
+.evBig small, .evGhost small { display: block; margin-top: 4px; font: 600 11px/1.2 var(--body); letter-spacing: .06em; text-transform: none; opacity: .75; }
+
+/* lobby */
+.evLobby { left: 20px; top: 20px; bottom: 20px; width: 380px; padding: 22px 22px 18px; overflow: auto; }
+.evLobby header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.evHi { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .14em; text-align: right; }
+.evHi b { display: block; font: 400 26px/1 var(--disp); color: var(--orange2); letter-spacing: .12em; }
+.evClock { margin: 14px 0 0; padding: 9px 12px; border-radius: 10px; background: rgba(157, 107, 255, .1); color: var(--dim); font-size: 13px; }
+.evClock b { color: var(--ink); } .evClock em { font-style: normal; font-weight: 700; color: var(--green); letter-spacing: .14em; }
+.evAnn { margin-top: 12px; display: grid; gap: 8px; }
+.evAnnRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px 9px 12px; border-radius: 12px;
+  background: linear-gradient(90deg, rgba(255, 138, 31, .2), rgba(255, 138, 31, .06)); border: 1px solid rgba(255, 138, 31, .4); font-size: 13px; }
+.evAnnRow.quiet { background: none; border-style: dashed; border-color: var(--line); color: var(--faint); }
+.evAnnRow b { color: var(--orange2); letter-spacing: .08em; }
+.evAnnRow button { flex: none; border: 0; border-radius: 9px; padding: 8px 12px; background: var(--orange); color: #2a1200; font-weight: 700; }
+.evVeh { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.evV { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 11px; border: 1.5px solid var(--line); background: rgba(12, 7, 24, .6); font-size: 12px !important; font-weight: 600 !important; }
+.evV i { font-style: normal; font-size: 20px; line-height: 1.1; }
+.evV.on { border-color: var(--orange); background: rgba(255, 138, 31, .14); color: var(--orange2); }
+.evV:hover:not(.on):not(:disabled) { border-color: var(--edge); }
+.evVinfo { margin: 8px 0 0; font-size: 12.5px; color: var(--dim); line-height: 1.35; }
+.evVinfo b { color: var(--ink); } .evVinfo span { color: var(--faint); }
+.evStats { margin: 14px 0 0; font-size: 12px; color: var(--faint); display: flex; justify-content: space-between; gap: 8px; }
+
+/* seat */
+.evSeat ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.evSeat li { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 11px; border: 1.5px solid var(--line); background: rgba(12, 7, 24, .6); }
+.evSeat li b { font: 400 20px/1 var(--disp); letter-spacing: .14em; color: var(--ink); }
+.evSeat li span { font-size: 12px; color: var(--dim); }
+.evSeat li.me { border-color: var(--orange); } .evSeat li.me b { color: var(--orange2); }
+.evSeat li.free { border-style: dashed; } .evSeat li.free b { color: var(--faint); }
+.evSeat li.ai { opacity: .55; } .evSeat li.ai b { font-size: 15px; }
+.evSeatMsg { margin: 12px 0 0; font-size: 15px; } .evSeatMsg b { font: 400 24px/1 var(--disp); color: var(--green); } .evSeatMsg span { display: block; font-size: 12px; color: var(--faint); }
+
+/* board */
+.evBoardP { right: 20px; top: 20px; bottom: 20px; width: 340px; padding: 18px 16px 12px; display: flex; flex-direction: column; }
+.evBoardP h2 { margin-top: 0 !important; }
+.evWinner { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(156, 255, 90, .08); border: 1px solid rgba(156, 255, 90, .3); font-size: 13px; color: var(--dim); }
+.evWinner b { font: 400 18px/1 var(--disp); color: var(--green); letter-spacing: .1em; margin: 0 4px; }
+.evBoardWrap { flex: 1; overflow: auto; margin: 0 -6px; padding: 0 6px; }
+.evBoardP th { position: sticky; top: 0; background: #140b25; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--faint); text-align: right; padding: 6px 4px; }
+.evBoardP td { padding: 6px 4px; text-align: right; border-top: 1px solid var(--line); font-size: 13px; color: var(--dim); }
+.evBoardP th:nth-child(2), .evBoardP td.t { text-align: left; }
+.evBoardP td:first-child { color: var(--faint); width: 26px; }
+.evBoardP td.t { font: 400 15px/1 var(--disp); letter-spacing: .12em; color: var(--ink); }
+.evBoardP tr:first-child td { color: var(--green); } .evBoardP tr:first-child td.t { color: var(--green); }
+.evBoardP tr.me td { background: rgba(255, 138, 31, .12); color: var(--orange2); } .evBoardP tr.me td.t { color: var(--orange2); }
+.evBoardP tr.empty td { text-align: center; color: var(--faint); }
+
+/* in race, practice */
+.evCorner { pointer-events: auto; position: absolute; left: 14px; top: 14px; z-index: 2; border: 1px solid var(--edge); border-radius: 10px; padding: 8px 12px;
+  background: rgba(16, 9, 30, .7); font-size: 13px !important; font-weight: 700 !important; letter-spacing: .06em; text-transform: uppercase; }
+body.evRacing .evCorner#evQuit { top: 76px; left: 14px; padding: 6px 10px; font-size: 11px !important; opacity: .7; }
+.evPrac .evCorner { top: auto; bottom: 96px; left: 14px; }
+body.touchmode .evPrac .evCorner { bottom: auto; top: 128px; }
+.evPracBar { pointer-events: auto; position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); padding: 8px 10px 10px;
+  border-radius: 14px; background: rgba(16, 9, 30, .78); border: 1px solid var(--edge); }
+.evPracBar > span { display: block; margin: 0 0 6px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+.evPracBar .evVeh { grid-template-columns: repeat(8, 1fr); }
+#evPracInfo { position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%) translateY(8px); width: min(460px, calc(100vw - 32px)); padding: 10px 14px; border-radius: 12px;
+  background: rgba(16, 9, 30, .82); border: 1px solid var(--edge); opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+#evPracInfo.on { opacity: 1; transform: translateX(-50%); }
+
+/* results */
+.evRes { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; padding: 24px 22px 20px; text-align: center; }
+#evResMine .big { margin: 14px 0 4px; font: 400 44px/1 var(--disp); color: var(--orange2); font-variant-numeric: tabular-nums; }
+#evResMine em { font-style: normal; font-weight: 700; color: var(--green); letter-spacing: .1em; text-transform: uppercase; font-size: 13px; }
+#evResMine p { color: var(--dim); font-size: 13px; margin: 8px 0 0; } #evResMine p b { color: var(--ink); } #evResMine .note { color: var(--faint); }
+.evRes table { margin-top: 16px; }
+.evRes td { padding: 8px 6px; border-top: 1px solid var(--line); text-align: right; color: var(--dim); }
+.evRes td.t { text-align: left; font: 400 16px/1 var(--disp); letter-spacing: .1em; color: var(--ink); }
+.evRes td:first-child { width: 24px; text-align: left; color: var(--faint); }
+.evRes tr.me td { color: var(--orange2); } .evRes tr.ai td.t { font: 600 13px/1 var(--body); letter-spacing: 0; color: var(--faint); }
+
+/* chrome */
+.evSound { pointer-events: auto; position: absolute; right: 14px; bottom: 14px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--edge); background: rgba(16, 9, 30, .7); font-size: 18px; }
+#ev[data-view="lobby"] .evSound, #ev[data-view="seat"] .evSound { right: 374px; }
+.evMode { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); margin: 0; padding: 4px 10px; border-radius: 8px; background: rgba(255, 138, 31, .9); color: #2a1200; font-size: 12px; font-weight: 700; }
+.evToast { position: absolute; left: 50%; top: 18%; transform: translate(-50%, -6px); padding: 10px 16px; border-radius: 12px; background: rgba(16, 9, 30, .9); border: 1px solid var(--orange);
+  opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; font-weight: 600; }
+.evToast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* phones and narrow windows: one column, the board under the lobby, the vehicle visible above */
+@media (max-width: 820px) {
+  #ev[data-view="lobby"], #ev[data-view="seat"] { overflow-y: auto; pointer-events: auto; -webkit-overflow-scrolling: touch; }
+  .evLobby, .evBoardP { position: relative; left: auto; right: auto; top: auto; bottom: auto; width: auto; margin: 16px; }
+  .evLobby { margin-top: 34vh; }
+  .evBoardP { max-height: 70vh; }
+  #ev[data-view="lobby"] .evSound, #ev[data-view="seat"] .evSound { position: fixed; right: 14px; top: 14px; bottom: auto; }
+  #ev h1 { font-size: 22px; }
+  .evPracBar .evVeh { grid-template-columns: repeat(4, 1fr); }
+  #evPracInfo { bottom: 150px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .evLobby { margin-top: 16px; }
+  .evPracBar { bottom: 6px; padding: 6px; } .evPracBar > span { display: none; } .evPracBar .evVeh { grid-template-columns: repeat(8, 1fr); }
+  .evV { padding: 4px 2px; } .evV span { display: none; }
+}
+/* phones: the swap bar opens from a button (the touch pads own the bottom corners), the card is compact */
+#evSwap { display: none; }
+body.touchmode #evSwap { display: block; top: auto; bottom: auto; left: 14px; top: calc(50% + 6px); }
+body.touchmode .evPrac .evCorner#evPracBack { top: calc(50% - 46px); bottom: auto; }
+body.touchmode .evPracBar { top: 50%; bottom: auto; transform: translate(-50%, -50%); display: none; }
+body.touchmode .evPrac.open .evPracBar { display: block; }
+body.touchmode #evPracInfo { top: 64px; bottom: auto; width: min(380px, calc(100vw - 260px)); font-size: 11.5px; padding: 7px 10px; }
+body.touchmode #ev[data-view="practice"] .evSound, body.touchmode #ev[data-view="race"] .evSound { display: none; }
+body.touchmode.evRacing .evCorner#evQuit { top: calc(50% - 46px); }
+body.evPractice .stat:has(#pos), body.evPractice .stat:has(#lap) { display: none !important; }

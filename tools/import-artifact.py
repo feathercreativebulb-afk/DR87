@@ -27,6 +27,7 @@ LEGACY = ROOT / 'packages/core/src/legacy'
 DATA = ROOT / 'packages/data'
 MODELS = ROOT / 'assets/models'
 MUSIC = ROOT / 'assets/music'
+VOX = ROOT / 'assets/vox'
 
 # Tables that are pure data (checked by evaluating them, see check_tables).
 # WORLDS is not here: it computes geometry inline and moves in phase 2.
@@ -90,17 +91,27 @@ def check_tables(js):
     return out
 
 
-PATCHES = [
-    # 1. models: fetch a real .glb instead of injecting a base64 <script>
+def patches(extras):
+    """The edits that make the artifact script load from the repo. `extras` maps a model file stem to the extra globals it
+    carries (e.g. lantern -> LANTERN_NEAR_GLB): the artifact set them by running the *-model.js script, the repo fetches them."""
+    ex = json.dumps(extras)
+    return [
+    # 1. models: fetch a real .glb instead of injecting a base64 <script>; extra GLBs a model file carried are fetched too
+    #    and handed back as the base64 globals the game reads
     (r'function loadGLBScript\(src, key\)\{.*?\n[ \t]*\}\n(?=[ \t]*function parseGLB)',
      "function loadGLBScript(src, key){\n"
      "  // DR87 repo: models ship as binary GLBs under assets/models (was base64 in *-model.js)\n"
-     "  const file = DR87.asset('models/' + src.replace(/-model\\.js$/, '') + '.glb');\n"
-     "  return fetch(file).then(r => { if (!r.ok) throw new Error(file + ' ' + r.status); return r.arrayBuffer(); });\n"
+     "  const stem = src.replace(/-model\\.js$/, ''), file = DR87.asset('models/' + stem + '.glb'), EXTRA = " + ex + ";\n"
+     "  const get = f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); });\n"
+     "  const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };\n"
+     "  return Promise.all((EXTRA[stem] || []).map(k => get(DR87.asset('models/' + stem + '.' + k + '.glb')).then(b => { window[k] = b64(b); }).catch(() => {})))\n"
+     "    .then(() => get(file));\n"
      "}\n"),
     # 2. music: tracks live under assets/music
     (r"new Audio\('music\.mp3'\)", "new Audio(DR87.asset('music/music.mp3'))"),
     (r"const a = new Audio\(src\);", "const a = new Audio(DR87.asset('music/' + src));"),
+    # 3. announcer clips live under assets/vox
+    (r"new Audio\('vox/' \+ k \+ '\.mp3'\)", "new Audio(DR87.asset('vox/' + k + '.mp3'))"),
 ]
 
 
@@ -116,9 +127,24 @@ def main():
         js = js[:a] + f'DR87.data[{json.dumps(slug)}]' + js[b:]
         (DATA / f'{slug}.json').write_text(json.dumps(value, indent=2, ensure_ascii=False) + '\n')
 
-    for pattern, repl in PATCHES:
+    MODELS.mkdir(parents=True, exist_ok=True)
+    extras = {}
+    for f in sorted(src.glob('*-model.js')):
+        found = re.findall(r'window\.(\w+)\s*=\s*"([A-Za-z0-9+/=]+)"', f.read_text())
+        if not found:
+            fail(f'{f.name}: no base64 payload')
+        stem = f.name.replace('-model.js', '')
+        for k, (key, payload) in enumerate(found):
+            glb = base64.b64decode(payload)
+            if glb[:4] != b'glTF':
+                fail(f'{f.name}: {key} is not a GLB')
+            (MODELS / (stem + '.glb' if k == 0 else f'{stem}.{key}.glb')).write_bytes(glb)
+            if k:
+                extras.setdefault(stem, []).append(key)
+
+    for pattern, repl in patches(extras):
         js, n = re.subn(pattern, lambda _m, r=repl: r, js, flags=re.S)
-        if n == 0:
+        if n == 0 and 'vox/' not in pattern:
             fail(f'patch did not apply: {pattern[:60]}')
 
     header = ("/* Dust Runner '87 — legacy game script, imported from the artifact by tools/import-artifact.py.\n"
@@ -129,22 +155,17 @@ def main():
     (LEGACY / 'game.css').write_text(css.strip() + '\n')
     (LEGACY / 'markup.html').write_text(markup + '\n')
 
-    MODELS.mkdir(parents=True, exist_ok=True)
-    for f in sorted(src.glob('*-model.js')):
-        m = re.search(r'window\.(\w+)\s*=\s*"([A-Za-z0-9+/=]+)"', f.read_text())
-        if not m:
-            fail(f'{f.name}: no base64 payload')
-        glb = base64.b64decode(m.group(2))
-        if glb[:4] != b'glTF':
-            fail(f'{f.name}: payload is not a GLB')
-        (MODELS / f.name.replace('-model.js', '.glb')).write_bytes(glb)
+    if (src / 'vox').is_dir():
+        VOX.mkdir(parents=True, exist_ok=True)
+        for f in sorted((src / 'vox').glob('*.mp3')):
+            shutil.copy2(f, VOX / f.name)
 
     MUSIC.mkdir(parents=True, exist_ok=True)
     for f in sorted(src.glob('music*.mp3')):
         shutil.copy2(f, MUSIC / f.name)
 
     print(f'imported: game.js {len(js)//1024} KB, {len(tables)} data tables, '
-          f'{len(list(MODELS.glob("*.glb")))} models, {len(list(MUSIC.glob("*.mp3")))} tracks')
+          f'{len(list(MODELS.glob("*.glb")))} models, {len(list(MUSIC.glob("*.mp3")))} tracks, {len(list(VOX.glob("*.mp3"))) if VOX.exists() else 0} voice clips')
 
 
 if __name__ == '__main__':

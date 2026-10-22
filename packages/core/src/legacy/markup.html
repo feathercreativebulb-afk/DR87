@@ -4,6 +4,7 @@
   <div class="hud" id="hudL">
     <div class="panel stat"><span class="lbl">Pos</span><span class="big" id="pos">4<small>/4</small></span></div>
     <div class="panel stat"><span class="lbl">Lap</span><span class="big" id="lap">1<small>/3</small></span></div>
+    <div class="panel stat ecoStat" id="ecoHud"><span class="lbl">Credits</span><span class="big" id="ecoCr"><i class="coin"></i>0</span><span class="tries" id="ecoTries" role="img" aria-label="5 tries left"></span></div>
     <div class="panel stat gaps" id="gaps" hidden><span class="lbl">Gap</span><span id="gapA" class="gapln up">–</span><span id="gapB" class="gapln dn">–</span></div>
   </div>
   <div class="hud panel" id="hudC">
@@ -51,6 +52,12 @@
         <div class="ipSec"><div class="lbl2">View <kbd>C · O · G</kbd></div>
           <div class="ipRow"><button class="ipBtn" id="ipCam">Chase cam</button><button class="ipBtn" id="ipOver" title="Climb until the whole track fits (O)">Overview</button></div>
           <div class="ipRow"><button class="ipBtn" id="ipFog">Fog: lifts with height</button><button class="ipBtn" id="ipRiv" aria-pressed="true">Rivals shown</button><button class="ipBtn" id="ipInk" aria-pressed="true">Comic ink</button><button class="ipBtn" id="ipProbeB" aria-pressed="true">Probe</button></div></div>
+        <div class="ipSec" id="ipMoveSec"><div class="lbl2">Move objects <kbd>N</kbd></div><div class="ipChips" id="ipGroups"></div>
+          <div class="ipRow"><button class="ipBtn" id="ipPick" title="Select what the crosshair is on (or the nearest group under the UFO)">Pick under crosshair</button><button class="ipBtn go" id="ipCarry" aria-pressed="false" title="The group follows the UFO; press again (or N) to drop it">Carry with UFO (N)</button></div>
+          <div class="ipRow ipNudge"><button class="ipBtn" data-mv="l" title="Left (the UFO's)">◀</button><button class="ipBtn" data-mv="f" title="Forward">▲</button><button class="ipBtn" data-mv="b" title="Back">▼</button><button class="ipBtn" data-mv="r" title="Right">▶</button><button class="ipBtn" data-mv="ccw" title="Turn left 15°">⟲</button><button class="ipBtn" data-mv="cw" title="Turn right 15°">⟳</button></div>
+          <div class="ipRow"><button class="ipBtn" data-mv="here" title="Move it to the ground under the crosshair">Bring to crosshair</button><button class="ipBtn" data-mv="cars" title="Turn its front to the cars coming down the track">Face oncoming cars</button><button class="ipBtn" data-mv="track" title="Turn its front to the nearest bit of track">Face track</button></div>
+          <div class="ipRow"><button class="ipBtn" id="ipStep">Step 5 m</button><button class="ipBtn" id="ipMvReset" title="Back to the world's default spot">Reset</button><button class="ipBtn" id="ipMvCopy" title="Copy this world's layout as JSON">Copy layout</button></div>
+          <div class="ipRead" id="ipMvRead"></div></div>
         <div class="ipSec"><div class="lbl2" id="ipProbeL">Under the beam</div><div class="ipRead" id="ipProbe"><b>Probe</b><span>reading…</span></div></div>
         <div class="ipSec"><div class="lbl2">Position &amp; render</div><div class="ipRead" id="ipStats"></div></div>
         <div class="ipKeys"><kbd>W</kbd><kbd>S</kbd> fly · <kbd>A</kbd><kbd>D</kbd> turn · <kbd>Q</kbd><kbd>E</kbd> hover sideways · <kbd>R</kbd>/<kbd>Space</kbd> up · <kbd>F</kbd>/<kbd>X</kbd> down · hold <kbd>Shift</kbd> turbo 400 km/h · <kbd>Y</kbd> demo race · <kbd>U</kbd> follow · <kbd>N</kbd> next sector · <kbd>Home</kbd> start line · drag to look around, wheel to zoom</div>
@@ -126,6 +133,7 @@
             <button role="tab" aria-selected="false" class="ctab" disabled>Add-ons <span class="soon">Soon</span></button>
           </div>
           <div class="skins" id="skinGrid" role="radiogroup" aria-label="Body paint"></div>
+          <div class="ecoLine" id="ecoShop"></div>
         </div>
         <div class="foot">
           <span class="sel" id="vSel"></span>
@@ -165,6 +173,7 @@
         </div>
         <div class="rivals"><span id="lvNote"></span><span class="rline"><span id="rivalLine"></span><button class="shuf" id="shufBtn" title="Draw a new mix of rival vehicles">Shuffle</button></span></div>
         <div class="goal" id="goalLine"></div>
+        <div class="ecoLine" id="ecoEntry"></div>
         <button class="cta go" id="startBtn">Start race</button>
       </aside>
     </section>
@@ -220,6 +229,28 @@
     </div>
   </div>
 
+    <div class="screen" id="ecoScr" hidden role="dialog" aria-modal="true" aria-labelledby="ecoTitle">
+    <div class="card">
+      <span class="kicker" id="ecoKick">Out of tries</span>
+      <div id="ecoTitle">Continue?</div>
+      <div id="ecoCount" aria-live="polite">9</div>
+      <p class="ecoNote" id="ecoNote"></p>
+      <div class="row">
+        <button class="cta" id="ecoCoin" type="button">Insert coin</button>
+        <button class="ghost" id="ecoAdBtn" type="button">Watch an ad</button>
+        <button class="ghost" id="ecoGiveUp" type="button">Give up</button>
+      </div>
+      <p class="ecoNote" id="ecoFree"></p>
+    </div>
+  </div>
+  <div class="screen" id="ecoAd" hidden role="dialog" aria-modal="true" aria-label="Rewarded ad">
+    <div class="card">
+      <span class="kicker">Test ad</span>
+      <div id="ecoAdT">3</div>
+      <p class="ecoNote">A portal rewarded video (CrazyGames or Poki SDK) plays here, muted game behind it. The reward only arrives if it plays to the end.</p>
+      <div class="row"><button class="ghost" id="ecoAdSkip" type="button">Close without reward</button></div>
+    </div>
+  </div>
   <div id="finBanner" hidden aria-live="polite"><div class="chk"></div><div id="finPlace">1<small>st</small></div><div id="finLine">Stage win</div><div class="chk"></div></div>
   <canvas id="confetti" hidden aria-hidden="true"></canvas>
   <div class="screen" id="res" hidden>
@@ -228,6 +259,7 @@
       <div id="resTitle">1st</div>
       <div class="panel tbl"><table id="resTable"></table></div>
       <div class="mline" id="resMedal" hidden></div>
+      <div class="mline" id="resCoins" hidden></div>
       <div class="goal" id="resGoal"></div>
       <div class="row"><button class="cta" id="againBtn">Race again</button><button class="ghost" id="resMenuBtn">Main menu</button></div>
     </div>

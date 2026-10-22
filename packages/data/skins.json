@@ -34,5 +34,26 @@
     "name": "Phantom",
     "c": 2237740,
     "chip": "linear-gradient(135deg,#9aa0ab 0%,#33363e 45%,#0b0c0f 100%)"
+  },
+  {
+    "id": "arcade",
+    "name": "Arcade",
+    "c": 14035566,
+    "price": 25,
+    "chip": "linear-gradient(135deg,#ffb0d2 0%,#e0337a 45%,#6a0a34 100%)"
+  },
+  {
+    "id": "solar",
+    "name": "Solar",
+    "c": 15251482,
+    "price": 60,
+    "chip": "linear-gradient(135deg,#fff4b0 0%,#f0c020 45%,#7a5a06 100%)"
+  },
+  {
+    "id": "violet",
+    "name": "Violet",
+    "c": 5910240,
+    "price": 150,
+    "chip": "linear-gradient(135deg,#d2c2ff 0%,#6a3cf0 45%,#1e0a6a 100%)"
   }
 ]

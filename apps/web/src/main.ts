@@ -1,6 +1,6 @@
 import { boot } from '@dr87/core';
 import { data } from '@dr87/data';
-import { createPlatform, registerServiceWorker } from '@dr87/platform';
+import { createPlatform } from '@dr87/platform';
 
 declare const __DR87_VERSION__: string;
 
@@ -9,11 +9,12 @@ const platform = createPlatform(base);
 document.documentElement.dataset.shell = platform.shell;
 
 boot({ data, platform, version: __DR87_VERSION__ })
-  .then(() => document.getElementById('boot')?.remove())
+  .then(() => { document.getElementById('boot')?.remove(); return import('./event/lobby').then((m) => m.start()); })
   .catch((err: unknown) => {
     console.error(err);
     const el = document.getElementById('boot');
     if (el) el.textContent = 'Could not start the game. Reload to try again.';
   });
 
-registerServiceWorker(base, platform.shell);
+// Halloween event build: no service worker. The event is online-only and must always load the latest deploy.
+

@@ -1,0 +1,81 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "tags": {
+      ".read": true,
+      "$tag": {
+        ".write": "auth != null && $tag.matches(/^[A-Z0-9]{3}$/) && newData.child('uid').val() === auth.uid && root.child('secrets').child($tag).exists() && root.child('claims').child($tag).child(auth.uid).val() === root.child('secrets').child($tag).val()",
+        ".validate": "newData.hasChildren(['uid', 'at'])"
+      }
+    },
+    "secrets": {
+      "$tag": {
+        ".write": "auth != null && !data.exists() && $tag.matches(/^[A-Z0-9]{3}$/)",
+        ".validate": "newData.isString() && newData.val().length === 64"
+      }
+    },
+    "claims": {
+      "$tag": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length === 64"
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.parent().parent().child('tags').child(newData.child('tag').val() + '').child('uid').val() === auth.uid"
+      }
+    },
+    "presence": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && (!newData.exists() || root.child('tags').child(newData.child('tag').val() + '').child('uid').val() === auth.uid)"
+      }
+    },
+
+    "$season": {
+      ".validate": "$season === 'warmup' || $season === 'event'",
+      "races": {
+        ".read": true,
+        "$race": {
+          ".write": "auth != null && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000)) && (data.child('humans').child(auth.uid).exists() || newData.child('humans').child(auth.uid).exists())",
+          ".validate": "!newData.exists() || (newData.child('status').val().matches(/^(open|starting|racing|done)$/) && newData.child('created').isNumber())",
+          "humans": {
+            "$uid": {
+              ".validate": "newData.child('slot').isNumber() && newData.child('slot').val() >= 0 && newData.child('slot').val() <= 2 && root.child('tags').child(newData.child('tag').val() + '').child('uid').val() === $uid"
+            }
+          }
+        }
+      },
+      "live": {
+        "$race": {
+          ".read": true,
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "!newData.exists() || (newData.child('p').exists() && newData.child('t').isNumber())"
+          }
+        }
+      },
+      "results": {
+        "$race": {
+          ".read": true,
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists() && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000)) && root.child($season).child('races').child($race).child('humans').child(auth.uid).exists()",
+            ".validate": "newData.child('time').isNumber() && newData.child('time').val() >= 150 && newData.child('time').val() * 1000 <= now - root.child($season).child('races').child($race).child('startAt').val() + 3000 && root.child('tags').child(newData.child('tag').val() + '').child('uid').val() === auth.uid"
+          }
+        }
+      },
+      "board": {
+        ".read": true,
+        "$tag": {
+          ".write": "auth != null && root.child('tags').child($tag).child('uid').val() === auth.uid && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000))",
+          ".validate": "newData.child('best').isNumber() && newData.child('best').val() >= 150 && newData.child('n').val() === (data.exists() ? data.child('n').val() + 1 : 1) && (!data.exists() || newData.child('best').val() <= data.child('best').val())"
+        }
+      }
+    }
+  }
+}

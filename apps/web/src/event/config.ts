@@ -24,11 +24,14 @@ export const EVENT = {
  * Leave apiKey empty to run on the local test backend (several tabs of one browser race each other).
  */
 export const FIREBASE = {
-  apiKey: '',
-  authDomain: '',
-  databaseURL: '',
-  projectId: '',
-  appId: '',
+  apiKey: 'AIzaSyDKNSOy0sy4QXxX8aQs4-loTBPuHanmNaU',
+  authDomain: 'dr87-halloween.firebaseapp.com',
+  // Realtime Database in Belgium (europe-west1); the console's config only lists this once the database exists
+  databaseURL: 'https://dr87-halloween-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'dr87-halloween',
+  storageBucket: 'dr87-halloween.firebasestorage.app',
+  messagingSenderId: '69010269166',
+  appId: '1:69010269166:web:8bbb9713153872d19664ff',
 };
 
 export type Phase = 'before' | 'live' | 'after';

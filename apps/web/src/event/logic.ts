@@ -45,12 +45,12 @@ export class Event {
     const h = await pinHash(tag, pin), uid = this.uid;
     const cur = await this.db.get<{ uid: string }>('tags/' + tag);
     if (cur?.uid === uid) { this.myTag = tag; return 'ok'; }
-    if (!cur) { try { await this.db.set('secrets/' + tag, h); } catch { /* someone set it a moment ago: fall through to the PIN check */ } }
-    if (this.db.kind !== 'firebase') { const s = await this.db.get<string>('secrets/' + tag); if (s !== h) return 'taken'; }   // the rules do this on Firebase
-    try {
-      await this.db.set('claims/' + tag + '/' + uid, h);
-      await this.db.update({ ['tags/' + tag]: { uid, at: this.db.stamp }, ['users/' + uid]: { tag } });
-    } catch { return 'taken'; }
+    if (this.db.kind !== 'firebase' && cur) { const s = await this.db.get<string>('secrets/' + tag); if (s !== h) return 'taken'; }   // the rules do this on Firebase
+    // one atomic write: the rules accept it only if the PIN hash matches the tag's secret (new tag: this write sets the secret).
+    // claimAt throttles PIN guesses to one per tag every 5 s.
+    const patch: Record<string, unknown> = { ['claims/' + tag + '/' + uid]: h, ['claimAt/' + tag]: this.db.stamp, ['tags/' + tag]: { uid, at: this.db.stamp }, ['users/' + uid]: { tag } };
+    if (!cur) patch['secrets/' + tag] = h;
+    try { await this.db.update(patch); } catch { return 'taken'; }
     this.myTag = tag; return 'ok';
   }
   watchTagCount(cb: (n: number) => void): Unsub { return this.db.on<Record<string, unknown>>('tags', (v) => cb(v ? Object.keys(v).length : 0)); }
@@ -93,13 +93,15 @@ export class Event {
     const ids = Object.entries(all).filter(([id, r]) => this.joinable(r) || id === prefer)
       .sort(([ia, a], [ib, b]) => (ia === prefer ? -1 : ib === prefer ? 1 : 0) || humansOf(b).length - humansOf(a).length || a.created - b.created).map(([id]) => id);
     for (const id of ids) {
-      const res = await this.db.tx<Race>(this.racesPath(s) + '/' + id, (r) => (r ? this.seatIn(r, kind) : null));
+      const res = await this.db.tx<Race>(this.racesPath(s) + '/' + id, (r) => (r ? this.seatIn(r, kind) : null)).catch(() => ({ committed: false, value: null }));   // gone meanwhile: try the next
       if (res.committed && res.value?.humans?.[this.uid]) { await this.seated(s, id); return id; }
     }
     const id = await this.db.push(this.racesPath(s), { status: 'open', created: this.now(), startAt: null, humans: { [this.uid]: { tag: this.myTag, kind, slot: 0, at: this.now() } } });
     await this.seated(s, id); return id;
   }
   private async seated(s: Season, id: string) { await this.db.onDisconnectRemove(this.racesPath(s) + '/' + id + '/humans/' + this.uid); }
+  /** once the race is on, a dropped connection must not unseat you (your result needs the seat) */
+  async keepSeat(s: Season, id: string) { await this.db.onDisconnectCancel(this.racesPath(s) + '/' + id + '/humans/' + this.uid); }
   async setKind(s: Season, id: string, kind: string) {
     await this.db.tx<Race>(this.racesPath(s) + '/' + id, (r) => { if (!r) return null; if (!r.humans?.[this.uid] || r.status === 'racing') return undefined; r.humans[this.uid].kind = kind; return r; });
   }
@@ -116,16 +118,19 @@ export class Event {
     });
   }
   /** keep a race honest when people come and go: back to waiting if it lost its second racer, racing once the clock hits zero */
-  async tend(s: Season, id: string, r: Race) {
+  async tend(s: Season, id: string, r: Race) { await this.tend0(s, id, r).catch(() => {}); }   // the race may be gone meanwhile
+  private async tend0(s: Season, id: string, r: Race) {
     const n = humansOf(r).length, now = this.now();
     if (r.status === 'starting' && n < EVENT.minHumans) {
       await this.db.tx<Race>(this.racesPath(s) + '/' + id, (x) => (!x ? null : x.status === 'starting' && humansOf(x).length < EVENT.minHumans ? { ...x, status: 'open', startAt: null } : undefined));
+    } else if (r.status === 'racing' && r.startAt && now > r.startAt + EVENT.raceTimeoutMs) {
+      await this.markDone(s, id);
     } else if (r.status === 'starting' && r.startAt && now >= r.startAt) {
       await this.db.tx<Race>(this.racesPath(s) + '/' + id, (x) => (!x ? null : x.status === 'starting' && humansOf(x).length >= EVENT.minHumans ? { ...x, status: 'racing' } : undefined));
     }
   }
   async markDone(s: Season, id: string) {
-    await this.db.tx<Race>(this.racesPath(s) + '/' + id, (x) => (!x ? null : x.status === 'racing' ? { ...x, status: 'done' } : undefined));
+    await this.db.tx<Race>(this.racesPath(s) + '/' + id, (x) => (!x ? null : x.status === 'racing' ? { ...x, status: 'done' } : undefined)).catch(() => {});
   }
 
   // ---------------- the race itself ----------------

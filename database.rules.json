@@ -6,22 +6,27 @@
     "tags": {
       ".read": true,
       "$tag": {
-        ".write": "auth != null && $tag.matches(/^[A-Z0-9]{3}$/) && newData.child('uid').val() === auth.uid && root.child('secrets').child($tag).exists() && root.child('claims').child($tag).child(auth.uid).val() === root.child('secrets').child($tag).val()",
+        ".write": "auth != null && newData.exists() && $tag.matches(/^[A-Z0-9]{3}$/) && !$tag.matches(/^(ASS|FUK|FUC|FCK|SEX|XXX|KKK|NIG|FAG|CUM|TIT|DIK|DIC|COK|GAY|PEE|POO|WTF|STF|KYS|NAZ|SS0|HIV|GOD|PIS|VAG|JEW|NUT|SUK|SUC|PUS|PMS|FKU|FKN|DIE|KIL|PUT|PIZ|CUR|MUI|PLM|PZD|FUT)$/) && newData.child('uid').val() === auth.uid && newData.parent().parent().child('secrets').child($tag).exists() && newData.parent().parent().child('claims').child($tag).child(auth.uid).val() === newData.parent().parent().child('secrets').child($tag).val() && newData.parent().parent().child('claimAt').child($tag).val() === now",
         ".validate": "newData.hasChildren(['uid', 'at'])"
       }
     },
     "secrets": {
       "$tag": {
-        ".write": "auth != null && !data.exists() && $tag.matches(/^[A-Z0-9]{3}$/)",
+        ".write": "auth != null && !data.exists() && newData.parent().parent().child('tags').child($tag).child('uid').val() === auth.uid",
         ".validate": "newData.isString() && newData.val().length === 64"
       }
     },
     "claims": {
       "$tag": {
         "$uid": {
-          ".write": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && newData.parent().parent().parent().child('claimAt').child($tag).val() === now",
           ".validate": "newData.isString() && newData.val().length === 64"
         }
+      }
+    },
+    "claimAt": {
+      "$tag": {
+        ".write": "auth != null && newData.val() === now && (!data.exists() || now - data.val() > 5000)"
       }
     },
     "users": {
@@ -43,10 +48,10 @@
         ".read": true,
         "$race": {
           ".write": "auth != null && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000)) && (data.child('humans').child(auth.uid).exists() || newData.child('humans').child(auth.uid).exists())",
-          ".validate": "!newData.exists() || (newData.child('status').val().matches(/^(open|starting|racing|done)$/) && newData.child('created').isNumber())",
+          ".validate": "newData.child('status').isString() && newData.child('status').val().matches(/^(open|starting|racing|done)$/) && newData.child('created').isNumber() && (data.child('status').val() !== 'racing' || (newData.child('startAt').val() === data.child('startAt').val() && newData.child('status').val().matches(/^(racing|done)$/))) && (data.child('status').val() !== 'done' || newData.child('status').val() === 'done') && (!newData.child('startAt').exists() || newData.child('startAt').val() === data.child('startAt').val() || newData.child('startAt').val() <= now + 25000)",
           "humans": {
             "$uid": {
-              ".validate": "newData.child('slot').isNumber() && newData.child('slot').val() >= 0 && newData.child('slot').val() <= 2 && root.child('tags').child(newData.child('tag').val() + '').child('uid').val() === $uid"
+              ".validate": "newData.child('slot').isNumber() && newData.child('slot').val() >= 0 && newData.child('slot').val() <= 2 && ((data.exists() && data.child('tag').val() === newData.child('tag').val()) || root.child('tags').child(newData.child('tag').val() + '').child('uid').val() === $uid)"
             }
           }
         }
@@ -55,8 +60,15 @@
         "$race": {
           ".read": true,
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid",
-            ".validate": "!newData.exists() || (newData.child('p').exists() && newData.child('t').isNumber())"
+            ".write": "auth != null && auth.uid === $uid && (!newData.exists() || root.child($season).child('races').child($race).child('humans').child(auth.uid).exists())",
+            ".validate": "newData.hasChildren(['t', 'p', 'q'])",
+            "t": { ".validate": "newData.isNumber()" }, "f": { ".validate": "newData.isNumber()" }, "sv": { ".validate": "newData.isNumber()" },
+            "pr": { ".validate": "newData.isNumber()" }, "lp": { ".validate": "newData.isNumber()" }, "ft": { ".validate": "newData.isNumber()" },
+            "bo": { ".validate": "newData.isNumber()" }, "k": { ".validate": "newData.isString() && newData.val().length < 12" },
+            "p": { "$i": { ".validate": "$i.matches(/^[0-2]$/) && newData.isNumber()" } },
+            "q": { "$i": { ".validate": "$i.matches(/^[0-3]$/) && newData.isNumber()" } },
+            "b": { "$i": { ".validate": "$i.matches(/^[0-1]$/) && newData.isNumber()" } },
+            "$other": { ".validate": false }
           }
         }
       },
@@ -72,8 +84,8 @@
       "board": {
         ".read": true,
         "$tag": {
-          ".write": "auth != null && root.child('tags').child($tag).child('uid').val() === auth.uid && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000))",
-          ".validate": "newData.child('best').isNumber() && newData.child('best').val() >= 150 && newData.child('n').val() === (data.exists() ? data.child('n').val() + 1 : 1) && (!data.exists() || newData.child('best').val() <= data.child('best').val())"
+          ".write": "auth != null && newData.exists() && root.child('tags').child($tag).child('uid').val() === auth.uid && ($season === 'warmup' || (now >= 1793289600000 && now <= 1793492100000))",
+          ".validate": "newData.child('best').isNumber() && newData.child('best').val() >= 150 && newData.child('n').val() === (data.exists() ? data.child('n').val() + 1 : 1) && (!data.exists() || newData.child('best').val() <= data.child('best').val()) && newData.child('sum').isNumber() && newData.child('sum').val() >= newData.child('best').val() * newData.child('n').val() - 0.05"
         }
       }
     }

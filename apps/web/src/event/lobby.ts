@@ -154,7 +154,7 @@ export async function start(): Promise<void> {
     S.launched = true;
     const hs = humansOf(r), me = hs.find((h) => h.id === ev.uid)!;
     G.startOnline({ myKind: me.kind, mySlot: me.slot, rivals: hs.filter((h) => h.id !== ev.uid).map((h) => ({ id: h.id, tag: h.tag, kind: h.kind, slot: h.slot })), goIn: (r.startAt ?? ev.now()) - ev.now() });
-    void ev.liveOnDisconnect(s, id); void ev.present('race');
+    void ev.liveOnDisconnect(s, id); void ev.keepSeat(s, id); void ev.present('race');
     G.hooks.pose = (p) => { void ev.sendPose(s, id, p).catch(() => {}); };
     raceSubs.push(ev.watchLive(s, id, (live) => {
       for (const [uid, pose] of Object.entries(live)) if (uid !== ev.uid) { G.netFeed(uid, pose); S.live.add(uid); }

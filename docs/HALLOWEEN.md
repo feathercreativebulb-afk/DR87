@@ -52,7 +52,13 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
 - **Opening and closing:** both happen automatically at the times in `config.ts`, and the database rules enforce the same times (`1793289600000` and `1793491200000` ms; results are accepted until 15 minutes after the close). To change the window, change both files.
 - **Who won:** Firebase console → Realtime Database → `event/board`. The lowest `best` wins. Every finished race is also stored under `event/results/<race>/<player>`, with tag, time, vehicle and when it was set.
 - **Before giving out the candy, check the winner.** Times come from the shared clock and the rules reject anything faster than 150 s for 3 laps, but a determined player with browser dev tools could still submit a fake time. Look at the winner's race in `event/results`: the other people in that race should have similar times.
-- **Removing a bad tag:** delete `tags/<TAG>`, `secrets/<TAG>` and `event/board/<TAG>` in the console.
+- **What the rules protect:**
+  - PIN guesses are limited to one every 5 s per tag, so trying every 4-digit PIN takes about 14 hours.
+  - Board rows can't be deleted, and a player's best time can only go down.
+  - A race's start time is locked once the race is on.
+  - A dropped connection mid-race doesn't unseat the player.
+  - Rude tags are blocked by the server too, not just the game.
+- - **Removing a bad tag:** delete `tags/<TAG>`, `secrets/<TAG>` and `event/board/<TAG>` in the console.
 
 ## Testing
 

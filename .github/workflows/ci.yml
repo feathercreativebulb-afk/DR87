@@ -5,6 +5,8 @@ name: CI and deploy
 # Halloween event (branch halloween-2026): the same checks, then it publishes ONLY the event, so nobody reaches the full game:
 #   /DR87/ and /DR87/halloween/  both serve the Halloween Night build
 #   /DR87/sw.js                  retires the full game's offline cache in browsers that visited it before
+#   /DR87/<secret>/              the full game from main, for debugging; the folder name comes from the repo secret
+#                                DEBUG_PATH (Settings → Secrets and variables → Actions), so it never appears in this public file
 # Needs halloween-2026 allowed in Settings → Environments → github-pages → Deployment branches.
 # After the event, re-run the workflow on main to bring the regular game back.
 on:
@@ -48,6 +50,19 @@ jobs:
         run: |
           mkdir -p site/halloween && cp -r apps/web/dist/. site/ && cp -r apps/web/dist/. site/halloween/
           cp tools/halloween/retire-sw.js site/sw.js
+      - name: Add the full game under the secret debug folder
+        if: github.ref == 'refs/heads/halloween-2026' && github.event_name != 'pull_request'
+        env:
+          DEBUG_PATH: ${{ secrets.DEBUG_PATH }}
+        run: |
+          if [ -z "$DEBUG_PATH" ]; then echo "No DEBUG_PATH secret: no debug copy of the full game"; exit 0; fi
+          case "$DEBUG_PATH" in *[!A-Za-z0-9_-]*) echo "DEBUG_PATH may only use letters, digits, - and _"; exit 1;; esac
+          git fetch --depth 1 origin main
+          git worktree add ../main-src origin/main
+          (cd ../main-src && npm ci && npm run build)
+          mkdir -p "site/$DEBUG_PATH" && cp -r ../main-src/apps/web/dist/. "site/$DEBUG_PATH/"
+          # keep it out of search engines
+          sed -i 's#<head>#<head><meta name="robots" content="noindex,nofollow">#' "site/$DEBUG_PATH/index.html"
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/halloween-2026' && github.event_name != 'pull_request'
         with:

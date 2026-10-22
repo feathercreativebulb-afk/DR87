@@ -46,6 +46,11 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
    - Browsers that played the full game before have it cached offline. A small replacement `sw.js` clears that cache on their next visit.
    - A push to `main` during the event would publish the full game again. Don't push `main` until after 1 Nov. Then re-run the workflow on `main` to bring the regular game back.
 
+**Debug access to the full game:**
+- To publish one, add a repository secret named `DEBUG_PATH` under Settings → Secrets and variables → Actions → Secrets, e.g. `project-Centaury`.
+- The deploy then builds the full game from `main` into that folder (`…/DR87/project-Centaury/`), marked noindex.
+- The folder name lives only in the secret, never in the public repo. Anyone who has the link can still open it.
+
 **The event build itself** only ever starts in Hollow Ridge or the Practice Grid. The game's own menu (garage, world picker, settings), the inspector and the Model Lab's debug handle are all left out.
 
 **One limit:** the repo is public, which GitHub Pages on a free account requires, so the full game's source code can be read on GitHub. To hide it too, make the repo private. That needs GitHub Pro for Pages, or hosting on Firebase Hosting instead.

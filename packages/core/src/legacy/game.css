@@ -487,4 +487,5 @@ body.touchmode #ipSpeed{bottom:calc(env(safe-area-inset-bottom,0px) + 190px)}
 #evTags .evTag::after{content:'';position:absolute;left:50%;bottom:-6px;margin-left:-5px;border:5px solid transparent;border-top-color:#ff8a1f;border-bottom:0}
 body.evRacing #pauseBtn{display:none!important}
 #ecoHud,.ecoStat{display:none!important}
+#menu,#wpick,#stepW,#setSheet,#insp{display:none!important}
 body.evPractice #pos,body.evPractice #lap{display:none!important}

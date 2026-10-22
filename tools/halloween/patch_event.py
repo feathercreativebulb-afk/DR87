@@ -76,6 +76,12 @@ rep("showToast('🧙 WITCH!', 1300); setTimeout(() => styleToast('Follow her spa
     "showToast('🧙 FOLLOW ME!', 1300); setTimeout(() => styleToast('Ride her sparkles for a boost'), 600); hrSay(['follow','follow2','follow3','follow4'][Math.random()*4|0], 9000);")
 rep("if (VOX) VOX.say('best'); }", "if (VOX) VOX.say(world.id === 'hollow' || world.id === 'demo' ? 'bestlap' : 'best'); }")
 
+# ---------- only the event: no way into the full game ----------
+# start in Hollow Ridge (the full game starts in the last world you picked), never show the game's own menu, no Lab handle
+rep("try { const sw = localStorage.getItem('dustrunner-world'); if (sw && WORLDS[sw]) world = WORLDS[sw]; } catch(_){}", "world = WORLDS.hollow;   // Halloween event: Hollow Ridge only")
+a = html.index("window.__DR87 = {"); b = html.index("};", a) + 2
+html = html[:a] + "/* (the Model Lab's window.__DR87 handle is left out of the event build) */" + html[b:]
+
 # ---------- styles: name tags over other racers ----------
 css = """
 /* DR87 Halloween event */
@@ -85,6 +91,7 @@ css = """
 #evTags .evTag::after{content:'';position:absolute;left:50%;bottom:-6px;margin-left:-5px;border:5px solid transparent;border-top-color:#ff8a1f;border-bottom:0}
 body.evRacing #pauseBtn{display:none!important}
 #ecoHud,.ecoStat{display:none!important}
+#menu,#wpick,#stepW,#setSheet,#insp{display:none!important}
 body.evPractice #pos,body.evPractice #lap{display:none!important}
 """
 styles = re.findall(r'<style>(.*?)</style>', html, re.S)

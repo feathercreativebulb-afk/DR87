@@ -9,7 +9,7 @@ const platform = createPlatform(base);
 document.documentElement.dataset.shell = platform.shell;
 
 boot({ data, platform, version: __DR87_VERSION__ })
-  .then(() => { document.getElementById('boot')?.remove(); return import('./event/lobby').then((m) => m.start()); })
+  .then(() => import('./event/lobby').then((m) => m.start()))   // the lobby removes the loading screen once it covers the game
   .catch((err: unknown) => {
     console.error(err);
     const el = document.getElementById('boot');

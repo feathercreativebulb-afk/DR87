@@ -446,7 +446,7 @@ const WORLDS = {
 };
 const WORLD_ORDER = ['desert','forge','tundra','cirrus','quarry','conduit','hive','hollow'];   // Model Lab: Hollow Ridge is on the end, in the Lab only
 let world = WORLDS.desert;
-try { const sw = localStorage.getItem('dustrunner-world'); if (sw && WORLDS[sw]) world = WORLDS[sw]; } catch(_){}
+world = WORLDS.hollow;   // Halloween event: Hollow Ridge only
 
 /* ---------- track + world state ---------- */
 const P = [], T = [], R = [];
@@ -8320,10 +8320,5 @@ document.body.classList.add('inmenu');
 requestAnimationFrame(frame);
 
 /* ---------- Model Lab hook: this copy only ---------- */
-window.__DR87 = {
-  get MODELS(){ return MODELS; }, get cars(){ return cars; }, get player(){ return player; }, get state(){ return state; }, get INSP(){ return INSP; },
-  get renderer(){ return renderer; }, setKind, selectVehicle, ensureRig, refreshLook, applySkin, parseGLB, inspEnter,
-  get eco(){ return ECO; }, get vox(){ return VOX; }, hollow:HOLLOW_LAB, inspWorld, selectWorld, get world(){ return world; }, get paused(){ return paused; }, get countT(){ return countT; }, get last(){ return last; },
-  failed(k){ const el = document.getElementById(k + 'Sub'); return !!el && el.textContent === 'Unavailable'; },
-};
+/* (the Model Lab's window.__DR87 handle is left out of the event build) */
 })();

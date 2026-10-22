@@ -41,11 +41,14 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
    - Realtime Database → Create (Belgium, europe-west1) → **Rules** tab → paste `database.rules.json` → Publish.
    - Project settings → Your apps → Web app → copy the config into `FIREBASE` in `apps/web/src/event/config.ts`.
 2. **GitHub Pages:** Settings → Environments → `github-pages` → Deployment branches → add `halloween-2026`.
-3. Push the branch. CI runs the checks and publishes:
-   - `https://feathercreativebulb-afk.github.io/DR87/`: the regular game, built from `main`.
-   - `https://feathercreativebulb-afk.github.io/DR87/halloween/`: the event.
+3. Push the branch. CI runs the checks and publishes **only the event**, so nobody can reach the full game by changing the URL:
+   - `https://feathercreativebulb-afk.github.io/DR87/` and `…/DR87/halloween/` both serve Halloween Night.
+   - Browsers that played the full game before have it cached offline. A small replacement `sw.js` clears that cache on their next visit.
+   - A push to `main` during the event would publish the full game again. Don't push `main` until after 1 Nov. Then re-run the workflow on `main` to bring the regular game back.
 
-   A push to `main` during the event redeploys only the regular game, which removes `/halloween/`. After any push to `main`, re-run the `halloween-2026` workflow (Actions → CI and deploy → Run workflow → branch `halloween-2026`).
+**The event build itself** only ever starts in Hollow Ridge or the Practice Grid. The game's own menu (garage, world picker, settings), the inspector and the Model Lab's debug handle are all left out.
+
+**One limit:** the repo is public, which GitHub Pages on a free account requires, so the full game's source code can be read on GitHub. To hide it too, make the repo private. That needs GitHub Pro for Pages, or hosting on Firebase Hosting instead.
 
 ## Running the event
 

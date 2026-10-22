@@ -37,6 +37,7 @@ export async function start(): Promise<void> {
   const G = await waitFor(() => window.__EV);
   const root = document.createElement('div'); root.id = 'ev'; document.body.appendChild(root);
   root.innerHTML = SHELL; G.toLobby();
+  requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById('boot')?.remove()));   // the game is under the lobby now: drop the loading screen
   const db = await openDB().catch((e) => { console.error(e); return null; });
   if (!db) { $('#evBoot').innerHTML = '<b>Could not reach the race server.</b><br>Check your connection and reload.'; return; }
   const ev = new Event(db);

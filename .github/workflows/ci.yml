@@ -2,10 +2,11 @@ name: CI and deploy
 
 # Every push and PR: typecheck, unit tests, build, smoke test in a real browser.
 # Pushes to main (and manual runs on main) also publish the web build to GitHub Pages — that's the shareable link.
-# Halloween event (branch halloween-2026): the same checks, then it publishes the site with BOTH games:
-#   /DR87/            the regular game, built from main
-#   /DR87/halloween/  the Halloween Night event build from this branch
+# Halloween event (branch halloween-2026): the same checks, then it publishes ONLY the event, so nobody reaches the full game:
+#   /DR87/ and /DR87/halloween/  both serve the Halloween Night build
+#   /DR87/sw.js                  retires the full game's offline cache in browsers that visited it before
 # Needs halloween-2026 allowed in Settings → Environments → github-pages → Deployment branches.
+# After the event, re-run the workflow on main to bring the regular game back.
 on:
   push:
     branches: [main, halloween-2026]
@@ -41,20 +42,12 @@ jobs:
         with:
           path: apps/web/dist
 
-      # ---- Halloween event: put the event under /halloween/ next to the regular game from main ----
-      - name: Build the regular game from main
+      # ---- Halloween event: the site is the event only ----
+      - name: Assemble the event site
         if: github.ref == 'refs/heads/halloween-2026' && github.event_name != 'pull_request'
         run: |
-          git fetch --depth 1 origin main
-          git worktree add ../main-src origin/main
-          cd ../main-src && npm ci && npm run build
-      - name: Assemble the site (main at the root, the event under /halloween/)
-        if: github.ref == 'refs/heads/halloween-2026' && github.event_name != 'pull_request'
-        run: |
-          mkdir -p site && cp -r ../main-src/apps/web/dist/. site/ && mkdir -p site/halloween && cp -r apps/web/dist/. site/halloween/
-          # the regular game's offline cache must never answer for the event (it would serve a stale event build)
-          sed -i "s#if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;#if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin || new URL(req.url).pathname.includes('/halloween/')) return;#" site/sw.js
-          grep -q "/halloween/" site/sw.js
+          mkdir -p site/halloween && cp -r apps/web/dist/. site/ && cp -r apps/web/dist/. site/halloween/
+          cp tools/halloween/retire-sw.js site/sw.js
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/halloween-2026' && github.event_name != 'pull_request'
         with:

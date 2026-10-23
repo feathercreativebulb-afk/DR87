@@ -3882,7 +3882,7 @@ const EV = (() => {
   const _q0 = new THREE.Quaternion(), _q1 = new THREE.Quaternion();
   function netDrive(c, dt){
     const n = c.net, b = n.buf; if (!b.length){ c.group.visible = false; return; }
-    const rt = now() - 140; let i = b.length - 1; while (i > 0 && b[i-1].t > rt) i--;
+    const rt = now() - 110; let i = b.length - 1; while (i > 0 && b[i-1].t > rt) i--;
     const s1 = b[i], s0 = b[Math.max(0, i-1)], span = s1.t - s0.t, u = span > 0 ? clamp((rt - s0.t)/span, 0, 1.6) : 1;
     const L = (a, z) => a + (z - a)*u;
     c.group.position.set(L(s0.p[0], s1.p[0]), L(s0.p[1], s1.p[1]), L(s0.p[2], s1.p[2]));
@@ -3906,7 +3906,7 @@ const EV = (() => {
   const _v = new THREE.Vector3();
   function frameHook(dt){
     if (E.online && E.online.started && (state === 'race' || state === 'done')){
-      E.sendT += dt; if (E.sendT > .1){ E.sendT = 0; call('pose', poseOf(player)); }
+      E.sendT += dt; if (E.sendT > 1/15){ E.sendT = 0; call('pose', poseOf(player)); }
     }
     const Wd = canvas.clientWidth, Hd = canvas.clientHeight;
     for (const c of cars){ const n = c.net; if (!n || !n.el) continue;
@@ -3932,6 +3932,7 @@ const EV = (() => {
     prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
     get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
     setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); applyReach(); },
+    probe(){ return { x:player.x, z:player.z, y:player.y||0, h:player.h, f:player.f, idx:player.idx, T:[T[player.idx].x, T[player.idx].z], cars:cars.filter(c => c.net).map(c => ({ x:c.x, z:c.z, vis:c.group.visible })) }; },
     breakdown(){   // debug: where the triangles go in the current view
       const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
       const out = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
@@ -4823,13 +4824,19 @@ function syncMesh(c, dt){
 
 function collide(){
   for (let a=0;a<cars.length;a++) for (let b=a+1;b<cars.length;b++){
-    const A=cars[a], B=cars[b]; if (A.net || B.net || A.bench || B.bench) continue; if (A.airT>0 || B.airT>0 || A.air || B.air || A.rec || B.rec || A.loop || B.loop) continue; const RAD=(A.prof.rad+B.prof.rad)/2;
+    const A=cars[a], B=cars[b]; if (A.bench || B.bench || (A.net && B.net)) continue;
+    if (A.airT>0 || B.airT>0 || A.air || B.air || A.rec || B.rec || A.loop || B.loop) continue;
+    if ((A.net && !A.group.visible) || (B.net && !B.group.visible) || Math.abs((A.y||0) - (B.y||0)) > 3) continue;   // a remote car mid-jump or on the loop is above or below
+    const RAD=(A.prof.rad+B.prof.rad)/2;
     const dx=A.x-B.x, dz=A.z-B.z; const d=Math.hypot(dx,dz);
     if (d>0 && d<RAD){
       const mA=A.prof.mass*(active(A,'shield')?5:active(A,'hook')?2.5:1), mB=B.prof.mass*(active(B,'shield')?5:active(B,'hook')?2.5:1), nx=dx/d, nz=dz/d, over=RAD-d;
-      A.x+=nx*over*mB/(mA+mB); A.z+=nz*over*mB/(mA+mB); B.x-=nx*over*mA/(mA+mB); B.z-=nz*over*mA/(mA+mB);
+      const wA = A.net ? 0 : B.net ? 1 : mB/(mA+mB), wB = B.net ? 0 : A.net ? 1 : mA/(mA+mB);
+      A.x+=nx*over*wA; A.z+=nz*over*wA; B.x-=nx*over*wB; B.z-=nz*over*wB;
       const vr=(A.vx-B.vx)*nx + (A.vz-B.vz)*nz;
-      if (vr<0){ const j=-vr*1.3/(1/mA+1/mB); A.vx+=nx*j/mA; A.vz+=nz*j/mA; B.vx-=nx*j/mB; B.vz-=nz*j/mB;
+      if (vr<0){
+        if (A.net || B.net){ const k = -vr*1.3; if (!A.net){ A.vx+=nx*k; A.vz+=nz*k; } if (!B.net){ B.vx-=nx*k; B.vz-=nz*k; } }
+        else { const j=-vr*1.3/(1/mA+1/mB); A.vx+=nx*j/mA; A.vz+=nz*j/mA; B.vx-=nx*j/mB; B.vz-=nz*j/mB; }
         if ((A.player||B.player) && Math.abs(vr)>6){ thud(Math.min(Math.abs(vr)/30,1)); addShake(Math.min(Math.abs(vr)/40,.5)); } }
     }
   }

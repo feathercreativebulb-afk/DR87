@@ -160,7 +160,7 @@ const EV = (() => {
   const _q0 = new THREE.Quaternion(), _q1 = new THREE.Quaternion();
   function netDrive(c, dt){
     const n = c.net, b = n.buf; if (!b.length){ c.group.visible = false; return; }
-    const rt = now() - 140; let i = b.length - 1; while (i > 0 && b[i-1].t > rt) i--;
+    const rt = now() - 110; let i = b.length - 1; while (i > 0 && b[i-1].t > rt) i--;
     const s1 = b[i], s0 = b[Math.max(0, i-1)], span = s1.t - s0.t, u = span > 0 ? clamp((rt - s0.t)/span, 0, 1.6) : 1;
     const L = (a, z) => a + (z - a)*u;
     c.group.position.set(L(s0.p[0], s1.p[0]), L(s0.p[1], s1.p[1]), L(s0.p[2], s1.p[2]));
@@ -184,7 +184,7 @@ const EV = (() => {
   const _v = new THREE.Vector3();
   function frameHook(dt){
     if (E.online && E.online.started && (state === 'race' || state === 'done')){
-      E.sendT += dt; if (E.sendT > .1){ E.sendT = 0; call('pose', poseOf(player)); }
+      E.sendT += dt; if (E.sendT > 1/15){ E.sendT = 0; call('pose', poseOf(player)); }
     }
     const Wd = canvas.clientWidth, Hd = canvas.clientHeight;
     for (const c of cars){ const n = c.net; if (!n || !n.el) continue;
@@ -210,6 +210,7 @@ const EV = (() => {
     prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
     get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
     setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); applyReach(); },
+    probe(){ return { x:player.x, z:player.z, y:player.y||0, h:player.h, f:player.f, idx:player.idx, T:[T[player.idx].x, T[player.idx].z], cars:cars.filter(c => c.net).map(c => ({ x:c.x, z:c.z, vis:c.group.visible })) }; },
     breakdown(){   // debug: where the triangles go in the current view
       const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
       const out = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };

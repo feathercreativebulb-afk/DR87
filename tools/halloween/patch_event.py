@@ -48,7 +48,29 @@ rep("      const inp = (c.player && !c.finished) ? playerInput()",
 rep("if (countT<=.6){ state='race'; }\n    for (const c of cars) syncMesh(c, dt);",
     "if (countT<=.6){ state='race'; }\n    for (const c of cars){ if (c.net) EV.netDrive(c, dt); else if (!c.bench) syncMesh(c, dt); }")
 rep("    collide();\n    for (const c of cars) obstacleCollide(c);", "    collide();\n    for (const c of cars) if (!c.net && !c.bench) obstacleCollide(c);")
-rep("const A=cars[a], B=cars[b]; if (", "const A=cars[a], B=cars[b]; if (A.net || B.net || A.bench || B.bench) continue; if (")
+# collisions: other people's cars are solid. Each screen moves only the cars it drives: someone else's car is an obstacle that
+# moves (it isn't pushed here), and on their screen they bounce off yours, so both sides react to the same contact.
+a = html.index("function collide(){"); b = html.index("\n}\n", a) + 3
+html = html[:a] + """function collide(){
+  for (let a=0;a<cars.length;a++) for (let b=a+1;b<cars.length;b++){
+    const A=cars[a], B=cars[b]; if (A.bench || B.bench || (A.net && B.net)) continue;
+    if (A.airT>0 || B.airT>0 || A.air || B.air || A.rec || B.rec || A.loop || B.loop) continue;
+    if ((A.net && !A.group.visible) || (B.net && !B.group.visible) || Math.abs((A.y||0) - (B.y||0)) > 3) continue;   // a remote car mid-jump or on the loop is above or below
+    const RAD=(A.prof.rad+B.prof.rad)/2;
+    const dx=A.x-B.x, dz=A.z-B.z; const d=Math.hypot(dx,dz);
+    if (d>0 && d<RAD){
+      const mA=A.prof.mass*(active(A,'shield')?5:active(A,'hook')?2.5:1), mB=B.prof.mass*(active(B,'shield')?5:active(B,'hook')?2.5:1), nx=dx/d, nz=dz/d, over=RAD-d;
+      const wA = A.net ? 0 : B.net ? 1 : mB/(mA+mB), wB = B.net ? 0 : A.net ? 1 : mA/(mA+mB);
+      A.x+=nx*over*wA; A.z+=nz*over*wA; B.x-=nx*over*wB; B.z-=nz*over*wB;
+      const vr=(A.vx-B.vx)*nx + (A.vz-B.vz)*nz;
+      if (vr<0){
+        if (A.net || B.net){ const k = -vr*1.3; if (!A.net){ A.vx+=nx*k; A.vz+=nz*k; } if (!B.net){ B.vx-=nx*k; B.vz-=nz*k; } }
+        else { const j=-vr*1.3/(1/mA+1/mB); A.vx+=nx*j/mA; A.vz+=nz*j/mA; B.vx-=nx*j/mB; B.vz-=nz*j/mB; }
+        if ((A.player||B.player) && Math.abs(vr)>6){ thud(Math.min(Math.abs(vr)/30,1)); addShake(Math.min(Math.abs(vr)/40,.5)); } }
+    }
+  }
+}
+""" + html[b:]
 rep("function standings(){ return [...cars]", "function standings(){ return cars.filter(c => !c.bench)")
 rep("$('pos').innerHTML = place+'<small>/'+cars.length+'</small>';", "$('pos').innerHTML = place+'<small>/'+st.length+'</small>';")
 rep("cars.forEach((c,k)=>{ const [i,lat] = GRID[slots[k]];", "cars.forEach((c,k)=>{ const [i,lat] = GRID[c.gridSlot ?? slots[k]];")

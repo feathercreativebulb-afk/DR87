@@ -18,8 +18,8 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
 - **Races:**
   - Hollow Ridge, 3 laps. Each race has 5 cars: up to **3 people** and the rest AI, so there are always at least 2 AI.
   - A race starts once **2 people** are in it: 20 seconds after the second joins, or 8 seconds once all 3 seats are taken. Nobody can join in the last 5 seconds.
-  - Other racers' cars are streamed about 10 times a second and shown with their tag floating over them as you close in.
-  - People never collide with each other, and no hazard costs a try, so nobody can wreck another person's race.
+  - Other racers' cars are streamed 15 times a second and shown with their tag floating over them as you close in.
+  - Cars are solid, other people's included. Each screen bounces only the car it drives, and the other player's screen does the same for theirs, so both sides react to the same bump. No hazard costs a try.
   - **The official time is the server clock from GO to the finish line.** It can't be paused or sped up.
   - The game can't be paused in an online race. A **Leave race** button drops you out, and the race isn't counted.
 - **Board:**

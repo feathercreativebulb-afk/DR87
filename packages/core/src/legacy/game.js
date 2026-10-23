@@ -629,11 +629,11 @@ function makeFx(color, n, additive, gravity){
     uniforms:{col:{value:new THREE.Color(color)}, scale:{value:innerHeight*.55}},
     vertexShader:'attribute float alpha;attribute float size;varying float vA;uniform float scale;void main(){vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=size*scale/-mv.z;gl_Position=projectionMatrix*mv;}',
     fragmentShader:'varying float vA;uniform vec3 col;void main(){float d=length(gl_PointCoord-.5);if(d>.5)discard;gl_FragColor=vec4(col,vA*(1.-d*2.));}' });
-  const pts = new THREE.Points(g, mat); pts.frustumCulled = false; scene.add(pts);
+  const pts = new THREE.Points(g, mat); pts.frustumCulled = false; pts.visible = false; scene.add(pts);
   return { mat,
-    emit(x,y,z,vx,vy,vz,size,l){ const i=head; head=(head+1)%n; pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=z; vel[i*3]=vx; vel[i*3+1]=vy; vel[i*3+2]=vz; sz[i]=size; life[i]=max[i]=l; },
-    update(dt){ for (let i=0;i<n;i++){ if (life[i]<=0){ al[i]=0; continue; } life[i]-=dt; const k=i*3; pos[k]+=vel[k]*dt; pos[k+1]+=vel[k+1]*dt; pos[k+2]+=vel[k+2]*dt; vel[k+1]-=gravity*dt; al[i]=Math.max(0,life[i]/max[i]); }
-      g.attributes.position.needsUpdate = g.attributes.alpha.needsUpdate = g.attributes.size.needsUpdate = true; } };
+    emit(x,y,z,vx,vy,vz,size,l){ pts.visible = true; const i=head; head=(head+1)%n; pos[i*3]=x; pos[i*3+1]=y; pos[i*3+2]=z; vel[i*3]=vx; vel[i*3+1]=vy; vel[i*3+2]=vz; sz[i]=size; life[i]=max[i]=l; },
+    update(dt){ let live = 0; for (let i=0;i<n;i++){ if (life[i]<=0){ al[i]=0; continue; } live++; life[i]-=dt; const k=i*3; pos[k]+=vel[k]*dt; pos[k+1]+=vel[k+1]*dt; pos[k+2]+=vel[k+2]*dt; vel[k+1]-=gravity*dt; al[i]=Math.max(0,life[i]/max[i]); }
+      pts.visible = live > 0; if (live) g.attributes.position.needsUpdate = g.attributes.alpha.needsUpdate = g.attributes.size.needsUpdate = true; } };
 }
 const sparks = makeFx(0xff8a2a, 400, true, 14);
 const glitter = makeFx(0xcfefff, 300, true, 0);
@@ -2599,12 +2599,14 @@ function hrGhostGeo(){
   g.computeVertexNormals(); return g;
 }
 function hrGhostMesh(mat, eyeM){
-  const G = new THREE.Group(), body = new THREE.Mesh(HR.ghostGeo || (HR.ghostGeo = hrGhostGeo()), mat); G.add(body);
-  const eye = new THREE.SphereGeometry(.17, 10, 8);
-  for (const sx of [-.38, .38]){ const e = new THREE.Mesh(eye, eyeM); e.scale.set(1, 1.5, .5); e.position.set(sx, 2.25, 1.07); G.add(e); }
-  const mo = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 8), eyeM); mo.scale.set(1, 1.25, .45); mo.position.set(0, 1.72, 1.12); G.add(mo);
-  const arm = new THREE.SphereGeometry(.32, 10, 8);
-  for (const sx of [-1, 1]){ const a = new THREE.Mesh(arm, mat); a.scale.set(1.4, .7, .7); a.position.set(sx*1.2, 1.55, .25); a.rotation.z = sx*.5; G.add(a); }
+  if (!HR.ghostParts){   // merge the parts once: body + arms share the ghost material, eyes + mouth share the black one
+    const M = (geo, s, p, rz) => { const g = geo.index ? geo.toNonIndexed() : geo.clone(); const o = new THREE.Object3D(); o.scale.set(...s); o.position.set(...p); o.rotation.z = rz || 0; o.updateMatrix(); g.applyMatrix4(o.matrix); return g; };
+    const merge = list => { const out = new THREE.BufferGeometry(); for (const k of ['position', 'normal']){ const arr = new Float32Array(list.reduce((n, g) => n + g.attributes[k].array.length, 0)); let o = 0; for (const g of list){ arr.set(g.attributes[k].array, o); o += g.attributes[k].array.length; } out.setAttribute(k, new THREE.BufferAttribute(arr, 3)); } out.computeBoundingSphere(); return out; };
+    const body = HR.ghostGeo || (HR.ghostGeo = hrGhostGeo()), eye = new THREE.SphereGeometry(.17, 10, 8), mo = new THREE.SphereGeometry(.2, 10, 8), arm = new THREE.SphereGeometry(.32, 10, 8);
+    HR.ghostParts = { body:merge([M(body, [1, 1, 1], [0, 0, 0]), ...[-1, 1].map(sx => M(arm, [1.4, .7, .7], [sx*1.2, 1.55, .25], sx*.5))]),
+      face:merge([...[-.38, .38].map(sx => M(eye, [1, 1.5, .5], [sx, 2.25, 1.07])), M(mo, [1, 1.25, .45], [0, 1.72, 1.12])]) };
+  }
+  const G = new THREE.Group(); G.add(new THREE.Mesh(HR.ghostParts.body, mat)); G.add(new THREE.Mesh(HR.ghostParts.face, eyeM));
   G.traverse(m => { if (m.isMesh) m.userData.noSolid = true; });
   return G;
 }
@@ -2926,7 +2928,7 @@ function hrFullPumpkins(g){
   const o = _hrO, cols = [0xe8761e, 0xd4621a, 0xf08a2a, 0xc85a16, 0xe06c1c, 0xeadfc4, 0xd9a03a];
   L.forEach((p, k) => { const r = p.s/1.56, sq = 1 + (p.c*7 % 1)*.3; o.position.set(p.x, p.y - .05*p.s, p.z); o.rotation.set(0, p.yaw, 0); o.scale.set(r*sq, r*(1.05 - .2*(sq - 1)), r*sq); o.updateMatrix();
     pk.setMatrixAt(k, o.matrix); st.setMatrixAt(k, o.matrix); pk.setColorAt(k, _hrC.setHex(cols[Math.floor(p.c*cols.length) % cols.length])); });
-  pk.castShadow = true; pk.receiveShadow = true; pk.userData.noSolid = true; st.userData.noSolid = true; g.add(pk); g.add(st);
+  pk.castShadow = true; pk.receiveShadow = true; pk.userData.noSolid = true; st.userData.noSolid = true; g.add(pk); g.add(st); HR.fullPkIM = [pk];   // EV.applyReach swaps in a lighter pumpkin on Saver
 }
 
 function hollowScenery(g){
@@ -3072,8 +3074,10 @@ function hollowScenery(g){
   { const batM = new THREE.MeshBasicMaterial({ color:0x0c0812, side:THREE.DoubleSide }), wing = new THREE.BufferGeometry();
     wing.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, .3, 0, 0, -.3, 1.4, .1, 0, 1.4, .1, 0, 0, 0, -.3, .9, -.2, -.5, 1.4, .1, 0, .9, -.2, -.5, 2, -.35, -.2], 3)); wing.computeVertexNormals();
     const cx = HR.pit ? HR.pit.B.x : C.x, cz = HR.pit ? HR.pit.B.z : C.z;
-    for (let k = 0; k < 18; k++){ const B = new THREE.Group(), L = new THREE.Mesh(wing, batM), Rw = new THREE.Mesh(wing, batM); Rw.scale.x = -1; B.add(L); B.add(Rw);
-      const body = new THREE.Mesh(new THREE.SphereGeometry(.28, 6, 5), batM); body.scale.z = 1.8; B.add(body); B.scale.setScalar(1.4); g.add(B);
+    const batW = new THREE.InstancedMesh(wing, batM, 36), batB = new THREE.InstancedMesh(new THREE.SphereGeometry(.28, 6, 5), batM, 18);
+    batW.frustumCulled = batB.frustumCulled = false; batW.instanceMatrix.setUsage(THREE.DynamicDrawUsage); batB.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    batW.userData.noSolid = batB.userData.noSolid = true; g.add(batW); g.add(batB); HR.batIM = { W:batW, B:batB, m:new THREE.Matrix4(), bm:new THREE.Matrix4().makeScale(1, 1, 1.8) };
+    for (let k = 0; k < 18; k++){ const B = new THREE.Object3D(), L = new THREE.Object3D(), Rw = new THREE.Object3D(); Rw.scale.x = -1; B.scale.setScalar(1.4);
       HR.bats.push({ m:B, L, Rw, cx:cx + rnd(-60, 60), cz:cz + rnd(-60, 60), r:rnd(20, 70), y:rnd(18, 45), w:rnd(.35, .7)*(Math.random() < .5 ? -1 : 1), ph:Math.random()*6.28 }); }
     for (let k = 0; k < 4; k++){ const m = hrWitchMesh(); g.add(m); HR.witches.push({ m, r:rnd(230, 470), y:rnd(45, 90), w:rnd(.08, .14)*(k % 2 ? -1 : 1), ph:k*1.57 + rnd(0, .6), bob:Math.random()*6.28, mode:'orbit' }); }
     const gm = new THREE.MeshLambertMaterial({ color:0xf2eeff, emissive:0x8a86c8, emissiveIntensity:.55, transparent:true, opacity:.82 }), em = new THREE.MeshBasicMaterial({ color:0x120c1c });
@@ -3625,6 +3629,9 @@ function hollowUpdate(t, dt){
   // scenery that always moves: bats, the pit ghosts, the ambient witches
   for (const b of HR.bats){ b.ph += b.w*dt; const x = b.cx + Math.cos(b.ph)*b.r, z = b.cz + Math.sin(b.ph)*b.r; b.m.position.set(x, b.y + Math.sin(t*2 + b.ph*3)*2, z); b.m.rotation.y = b.ph*Math.sign(b.w) + (b.w > 0 ? 0 : Math.PI);
     const f = Math.sin(t*16 + b.ph*5)*.7; b.L.rotation.z = f; b.Rw.rotation.z = -f; }
+  if (HR.batIM){ const I = HR.batIM; HR.bats.forEach((b, k) => { b.m.updateMatrix(); b.L.updateMatrix(); b.Rw.updateMatrix();
+      I.W.setMatrixAt(2*k, I.m.multiplyMatrices(b.m.matrix, b.L.matrix)); I.W.setMatrixAt(2*k + 1, I.m.multiplyMatrices(b.m.matrix, b.Rw.matrix)); I.B.setMatrixAt(k, I.m.multiplyMatrices(b.m.matrix, I.bm)); });
+    I.W.instanceMatrix.needsUpdate = I.B.instanceMatrix.needsUpdate = true; }
   for (const g of HR.pitGhosts){ g.ph += dt*g.sp; const u = .5 - .5*Math.cos(g.ph); g.m.position.y = g.lo + (g.hi - g.lo)*u; if (!g.face) g.m.rotation.y += dt*.3; else g.m.rotation.z = Math.sin(g.ph*.7)*.08; }
   hrWitchStep(t, dt); hrTrailStep(dt);
   for (const gh of HR.ghosts) if (gh.live) hrGhostStep(gh, dt);
@@ -3812,7 +3819,34 @@ const EV = (() => {
     camera.far = R.far; camera.updateProjectionMatrix();
     if (scene.fog && world.fog){ scene.fog.far = Math.min(world.fog[2], R.far - 60); scene.fog.near = Math.min(world.fog[1], scene.fog.far*.3); }
     try { if (HR.smog && HR.smog.m.geometry) HR.smog.m.geometry.instanceCount = Math.max(1, Math.round(HR_SMOG_N*R.smog)); } catch(_){}
+    // Saver: the pumpkin patches and yards use a lighter pumpkin (about half the triangles; the ribs still read from the road)
+    try { if (HR_PK.geo){
+      if (!HR_PK.lo) HR_PK.lo = hrPumpkinGeo(8, 7, 12);
+      const lo = quality === 'saver', seen = new Set();
+      for (const p of HR.patchPk.concat(HR.fullPkIM || [])){ const im = p._im || p; if (!im || seen.has(im)) continue; seen.add(im);
+        if (!im.userData.pkHi) im.userData.pkHi = im.geometry; im.geometry = lo ? HR_PK.lo : im.userData.pkHi; }
+    } } catch(e){ console.warn('pumpkin detail', e); }
+    try { if (shed) applyShed(); } catch(_){}
   }
+  // ---------- adaptive detail: when even half resolution can't hold the frame rate, shed effects one at a time ----------
+  // level 1: no shadows · level 2: no ink outline pass · level 3: smog thinned to a third. Given back one step at a time
+  // once frames have room again at full resolution. Changing the graphics preset starts from level 0.
+  let shed = 0; const lookWas = { v:null };
+  function applyShed(){
+    const sh = shed < 1 && Q.shadow > 0;
+    if (renderer.shadowMap.enabled !== sh){ renderer.shadowMap.enabled = sh; scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); }); }
+    sun.castShadow = sh;
+    if (shed >= 2){ if (lookWas.v === null) lookWas.v = lookOn; lookOn = false; } else if (lookWas.v !== null){ lookOn = lookWas.v; lookWas.v = null; }
+    try { if (HR.smog && HR.smog.m.geometry){ const R = REACH[quality] || REACH.high; HR.smog.m.geometry.instanceCount = Math.max(1, Math.round(HR_SMOG_N*R.smog*(shed >= 3 ? .33 : 1))); } } catch(_){}
+  }
+  let shedGood = 0;
+  E.shedStep = (late, roomy, atMin = dynScale <= .5 + 1e-6, atMax = dynScale >= 1) => {   // called by the dynamic-resolution check every ~2 s while racing
+    if (late && atMin && shed < 3){ shed++; shedGood = 0; applyShed(); console.info('[EV] detail cut to level', shed); }
+    else if (roomy && atMax && shed > 0){ if (++shedGood >= 2){ shed--; shedGood = 0; applyShed(); console.info('[EV] detail back to level', shed); } }
+    else if (!roomy) shedGood = 0;
+  };
+  E.resetShed = () => { if (shed){ shed = 0; shedGood = 0; applyShed(); } };
+
   // Saver on a computer: keep 60 fps (30 felt choppy at the event's speeds) and save the work on pixels instead, rendering at
   // 80% resolution with no shadows; when frames still run late the game's dynamic resolution steps down further. Phones keep 30 fps.
   if (!IS_TOUCH){ Object.assign(QUALITY.saver, { fps:60, dpr:.8, note:'60 fps, lower resolution, no shadows' }); if (quality === 'saver') applyQuality(); }
@@ -3931,8 +3965,17 @@ const EV = (() => {
     mute(){ toggleMute(); return muted; }, get muted(){ return muted; },
     prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
     get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
-    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); applyReach(); },
+    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); E.resetShed(); applyReach(); },
     probe(){ return { x:player.x, z:player.z, y:player.y||0, h:player.h, f:player.f, idx:player.idx, T:[T[player.idx].x, T[player.idx].z], cars:cars.filter(c => c.net).map(c => ({ x:c.x, z:c.z, vis:c.group.visible })) }; },
+    drawCalls(){   // debug: which objects make the draw calls in the current view (one per visible mesh in view)
+      const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
+      const out = {}, detail = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; let total = 0, key2;
+      scene.traverse(o => { if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !shown(o)) return; if (o.frustumCulled && o.geometry){ if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); if (!fr.intersectsObject(o)) return; }
+        let k = o; while (k.parent && k.parent !== worldGroup && k.parent !== scene) k = k.parent; const key = (k.name || k.type) + (k.userData && k.userData.car ? ':car' : '') + '>' + (o.name || o.type) + ':' + (o.material && o.material.type);
+        if (k !== o && o.isMesh && !o.name){ const g = o.geometry; const m = o.material; key2 = (g && g.type) + ' ' + (g && g.parameters ? JSON.stringify(g.parameters).slice(0, 40) : '') + ' blend=' + (m && m.blending) + ' tr=' + (m && m.transparent) + ' map=' + !!(m && m.map) + ' grp=' + k.children.length; detail[key + ' | ' + key2] = (detail[key + ' | ' + key2] || 0) + 1; }
+        out[key] = (out[key] || 0) + 1; total++; });
+      return { total, top: Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, v]) => v + ' ' + k).concat(['--']).concat(Object.entries(detail).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => v + ' ' + k)) };
+    },
     breakdown(){   // debug: where the triangles go in the current view
       const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
       const out = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
@@ -3942,7 +3985,12 @@ const EV = (() => {
         out[key] = (out[key] || 0) + t; });
       return Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => k + ' ' + Math.round(v/1000) + 'k');
     },
-    perf(){ const ar = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); renderFrame(); const r = renderer.info.render, out = { tris:r.triangles, calls:r.calls, far:camera.far, q:quality }; renderer.info.autoReset = ar; return out; },
+    shedStep:(...a) => E.shedStep(...a), get shed(){ return shed; },
+    // debug: a still of one ghost or the bats, rendered from a camera placed next to it (returns a PNG data URL)
+    still(kind){ const o = kind === 'bat' ? new THREE.Vector3(HR.bats[0].m.position.x, HR.bats[0].m.position.y, HR.bats[0].m.position.z) : (HR.pitGhosts[0] ? HR.pitGhosts[0].m.getWorldPosition(new THREE.Vector3()) : null); if (!o) return null;
+      if (kind !== 'bat') o.y += 2; const d = kind === 'bat' ? 6 : 9; camera.position.set(o.x + d, o.y + 1, o.z + d*.4); camera.lookAt(o); camera.updateMatrixWorld(); renderFrame(); return renderer.domElement.toDataURL('image/jpeg', .8); },
+    headless(on = true){ if (!renderer.__render) renderer.__render = renderer.render; renderer.render = on ? () => {} : renderer.__render; },   // tests: a background browser that only drives and sends, never draws
+    perf(){ const ar = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); renderFrame(); const r = renderer.info.render, out = { tris:r.triangles, calls:r.calls, far:camera.far, q:quality, shed, dyn:dynScale, look:lookOn, shadows:renderer.shadowMap.enabled, smog:(HR.smog && HR.smog.m.geometry.instanceCount) }; renderer.info.autoReset = ar; return out; },
   };
 })();
 window.__EV = EV;
@@ -7427,13 +7475,16 @@ function frame(now){
   // dynamic resolution: if frames keep arriving late, draw fewer pixels; give them back when there's headroom
   if (racing && Q.fps){ perfAcc += gap; perfN++; perfT += gap;
     if (perfT > 2000){ const avg = perfAcc/perfN, target = 1000/Q.fps;
+      try { EV.shedStep(avg > target*1.3, avg < target*1.08); } catch(_){}   // at half resolution and still late: shed shadows, ink, smog
       if (avg > target*1.3 && dynScale > .5){ dynScale = Math.max(.5, dynScale - .12); applyPixelRatio(); }
       else if (avg < target*1.08 && dynScale < 1){ dynScale = Math.min(1, dynScale + .06); applyPixelRatio(); }
       perfAcc = perfN = perfT = 0; } }
   if (Q.shadow && Q.shadowEvery > 1) renderer.shadowMap.needsUpdate = frameN % Q.shadowEvery === 0;
-  let dt = Math.min(.05, (now-last)/1000); last = now;
-  const dtReal = dt; if (slowmo > 0 && !paused){ slowmo -= dt; dt *= .3; }
-  const t = now/1000;
+  const dtAll = Math.min(.25, (now-last)/1000); last = now;
+  const SUB = Math.max(1, Math.ceil(dtAll/.05 - 1e-9)); let dt = 0, dtReal = 0, slowK = 1;
+  for (let _s = 0; _s < SUB; _s++){
+  dt = dtAll/SUB; dtReal = dt; slowK = 1; if (slowmo > 0 && !paused){ slowmo -= dt; dt *= .3; slowK = .3; }
+  const t = now/1000 - (SUB - 1 - _s)*dtReal;
 
   if (!paused && (state==='count' || state==='race')) tutorUpdate();
   if (!paused && state==='count'){
@@ -7469,6 +7520,8 @@ function frame(now){
     tankSmoke.update(dt); updateShells(dt); surpriseUpdate(dt); for (const c of cars) burnUpdate(c, dt); nightUpdate(dt);
     for (const c of cars) if (c._shield && c._shield.visible) c._shield.material.uniforms.uT.value = clockT;
   }
+  }
+  dtReal = dtAll; dt = dtAll*slowK;   // camera, HUD and audio run once per drawn frame
   ghostUpdate(paused ? 0 : dt); drawLines(dtReal); musicUpdate(dtReal);
 
   // camera

@@ -21,6 +21,7 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
   - Other racers' cars are streamed 15 times a second and shown with their tag floating over them as you close in.
   - Cars are solid, other people's included. Each screen bounces only the car it drives, and the other player's screen does the same for theirs, so both sides react to the same bump. No hazard costs a try.
   - **The official time is the server clock from GO to the finish line.** It can't be paused or sped up.
+  - The game keeps real time down to 4 fps, so a slow laptop or phone isn't slowed down on the clock. When a device can't keep up, the picture loses resolution first, then shadows, the ink outlines and some smog.
   - The game can't be paused in an online race. A **Leave race** button drops you out, and the race isn't counted.
 - **Board:**
   - Shows the top 100 tags, ranked by best single race, with each player's average and number of races.
@@ -73,6 +74,7 @@ A standalone online build of Dust Runner '87 for the local Halloween event. It i
 - `npm test`: unit tests, including the event logic (tags and PINs, filling races 3 at a time, starting with 2, falling back to waiting, best and average times).
 - `npm run test:e2e`: boots the build on the local backend, signs up, checks every vehicle loads, and drives the practice track (desktop and phone).
 - **Local backend:** while `FIREBASE.apiKey` is empty, or with `?local=1`, the game stores everything in the browser. Several tabs of one browser race each other, one player per tab.
+- **Graphics checks:** in the browser console, `__EV.perf()` gives triangles, draw calls and the detail level; `__EV.drawCalls()` lists what draws.
 - **Several browsers:** run `node tools/event-relay.mjs`, then open `?relay=ws://localhost:8787` in each browser. This is how the three-player race was tested end to end: sign-up, a taken tag, the announcement, joining, the countdown, the race, the results and the board.
 
 ## Where the code is

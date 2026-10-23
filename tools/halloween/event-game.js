@@ -90,7 +90,34 @@ const EV = (() => {
     camera.far = R.far; camera.updateProjectionMatrix();
     if (scene.fog && world.fog){ scene.fog.far = Math.min(world.fog[2], R.far - 60); scene.fog.near = Math.min(world.fog[1], scene.fog.far*.3); }
     try { if (HR.smog && HR.smog.m.geometry) HR.smog.m.geometry.instanceCount = Math.max(1, Math.round(HR_SMOG_N*R.smog)); } catch(_){}
+    // Saver: the pumpkin patches and yards use a lighter pumpkin (about half the triangles; the ribs still read from the road)
+    try { if (HR_PK.geo){
+      if (!HR_PK.lo) HR_PK.lo = hrPumpkinGeo(8, 7, 12);
+      const lo = quality === 'saver', seen = new Set();
+      for (const p of HR.patchPk.concat(HR.fullPkIM || [])){ const im = p._im || p; if (!im || seen.has(im)) continue; seen.add(im);
+        if (!im.userData.pkHi) im.userData.pkHi = im.geometry; im.geometry = lo ? HR_PK.lo : im.userData.pkHi; }
+    } } catch(e){ console.warn('pumpkin detail', e); }
+    try { if (shed) applyShed(); } catch(_){}
   }
+  // ---------- adaptive detail: when even half resolution can't hold the frame rate, shed effects one at a time ----------
+  // level 1: no shadows · level 2: no ink outline pass · level 3: smog thinned to a third. Given back one step at a time
+  // once frames have room again at full resolution. Changing the graphics preset starts from level 0.
+  let shed = 0; const lookWas = { v:null };
+  function applyShed(){
+    const sh = shed < 1 && Q.shadow > 0;
+    if (renderer.shadowMap.enabled !== sh){ renderer.shadowMap.enabled = sh; scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); }); }
+    sun.castShadow = sh;
+    if (shed >= 2){ if (lookWas.v === null) lookWas.v = lookOn; lookOn = false; } else if (lookWas.v !== null){ lookOn = lookWas.v; lookWas.v = null; }
+    try { if (HR.smog && HR.smog.m.geometry){ const R = REACH[quality] || REACH.high; HR.smog.m.geometry.instanceCount = Math.max(1, Math.round(HR_SMOG_N*R.smog*(shed >= 3 ? .33 : 1))); } } catch(_){}
+  }
+  let shedGood = 0;
+  E.shedStep = (late, roomy, atMin = dynScale <= .5 + 1e-6, atMax = dynScale >= 1) => {   // called by the dynamic-resolution check every ~2 s while racing
+    if (late && atMin && shed < 3){ shed++; shedGood = 0; applyShed(); console.info('[EV] detail cut to level', shed); }
+    else if (roomy && atMax && shed > 0){ if (++shedGood >= 2){ shed--; shedGood = 0; applyShed(); console.info('[EV] detail back to level', shed); } }
+    else if (!roomy) shedGood = 0;
+  };
+  E.resetShed = () => { if (shed){ shed = 0; shedGood = 0; applyShed(); } };
+
   // Saver on a computer: keep 60 fps (30 felt choppy at the event's speeds) and save the work on pixels instead, rendering at
   // 80% resolution with no shadows; when frames still run late the game's dynamic resolution steps down further. Phones keep 30 fps.
   if (!IS_TOUCH){ Object.assign(QUALITY.saver, { fps:60, dpr:.8, note:'60 fps, lower resolution, no shadows' }); if (quality === 'saver') applyQuality(); }
@@ -209,8 +236,17 @@ const EV = (() => {
     mute(){ toggleMute(); return muted; }, get muted(){ return muted; },
     prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
     get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
-    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); applyReach(); },
+    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); E.resetShed(); applyReach(); },
     probe(){ return { x:player.x, z:player.z, y:player.y||0, h:player.h, f:player.f, idx:player.idx, T:[T[player.idx].x, T[player.idx].z], cars:cars.filter(c => c.net).map(c => ({ x:c.x, z:c.z, vis:c.group.visible })) }; },
+    drawCalls(){   // debug: which objects make the draw calls in the current view (one per visible mesh in view)
+      const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
+      const out = {}, detail = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }; let total = 0, key2;
+      scene.traverse(o => { if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !shown(o)) return; if (o.frustumCulled && o.geometry){ if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); if (!fr.intersectsObject(o)) return; }
+        let k = o; while (k.parent && k.parent !== worldGroup && k.parent !== scene) k = k.parent; const key = (k.name || k.type) + (k.userData && k.userData.car ? ':car' : '') + '>' + (o.name || o.type) + ':' + (o.material && o.material.type);
+        if (k !== o && o.isMesh && !o.name){ const g = o.geometry; const m = o.material; key2 = (g && g.type) + ' ' + (g && g.parameters ? JSON.stringify(g.parameters).slice(0, 40) : '') + ' blend=' + (m && m.blending) + ' tr=' + (m && m.transparent) + ' map=' + !!(m && m.map) + ' grp=' + k.children.length; detail[key + ' | ' + key2] = (detail[key + ' | ' + key2] || 0) + 1; }
+        out[key] = (out[key] || 0) + 1; total++; });
+      return { total, top: Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([k, v]) => v + ' ' + k).concat(['--']).concat(Object.entries(detail).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => v + ' ' + k)) };
+    },
     breakdown(){   // debug: where the triangles go in the current view
       const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
       const out = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
@@ -220,7 +256,12 @@ const EV = (() => {
         out[key] = (out[key] || 0) + t; });
       return Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => k + ' ' + Math.round(v/1000) + 'k');
     },
-    perf(){ const ar = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); renderFrame(); const r = renderer.info.render, out = { tris:r.triangles, calls:r.calls, far:camera.far, q:quality }; renderer.info.autoReset = ar; return out; },
+    shedStep:(...a) => E.shedStep(...a), get shed(){ return shed; },
+    // debug: a still of one ghost or the bats, rendered from a camera placed next to it (returns a PNG data URL)
+    still(kind){ const o = kind === 'bat' ? new THREE.Vector3(HR.bats[0].m.position.x, HR.bats[0].m.position.y, HR.bats[0].m.position.z) : (HR.pitGhosts[0] ? HR.pitGhosts[0].m.getWorldPosition(new THREE.Vector3()) : null); if (!o) return null;
+      if (kind !== 'bat') o.y += 2; const d = kind === 'bat' ? 6 : 9; camera.position.set(o.x + d, o.y + 1, o.z + d*.4); camera.lookAt(o); camera.updateMatrixWorld(); renderFrame(); return renderer.domElement.toDataURL('image/jpeg', .8); },
+    headless(on = true){ if (!renderer.__render) renderer.__render = renderer.render; renderer.render = on ? () => {} : renderer.__render; },   // tests: a background browser that only drives and sends, never draws
+    perf(){ const ar = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); renderFrame(); const r = renderer.info.render, out = { tris:r.triangles, calls:r.calls, far:camera.far, q:quality, shed, dyn:dynScale, look:lookOn, shadows:renderer.shadowMap.enabled, smog:(HR.smog && HR.smog.m.geometry.instanceCount) }; renderer.info.autoReset = ar; return out; },
   };
 })();
 window.__EV = EV;

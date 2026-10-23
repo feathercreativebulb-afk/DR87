@@ -8,16 +8,13 @@
 - **Scales with the device:** resolution, shadows, draw distance, scenery density and post effects.
 - **The urgent finding:** the first part isn't true today. On a slow device the game runs in slow motion, which costs real seconds on the event clock.
 
-## 1. Must fix for the event: game time slows down on slow devices
+## 1. Fixed: game time no longer slows down on slow devices (shipped 23 Oct)
 
-- **The cause:** the frame loop caps each step at 50 ms (`let dt = Math.min(.05, …)` in `game.js`). Below 20 fps the simulation can't keep up with real time:
-  - at 15 fps the race runs at 75% speed;
-  - at 10 fps it runs at 50% speed.
-- **Why it matters for the prize:** the official time is the server clock from GO to the line, so a player on a weak laptop or old phone posts a slower time for the same driving.
-- **The fix:** split long frames into several physics steps of at most 1/60 s (with a ceiling, e.g. 6 steps a frame). Game time then matches real time down to about 10 fps.
-  - This is a small, local change to the race loop and hazard updaters.
-  - It is the "fixed 60 Hz simulation step" already planned for phase 2, brought forward. It also makes handling identical at 30, 60 and 144 Hz.
-  - Risk: at very low frame rates the bigger effective steps need the existing wall and solid checks to run per step (they do once it's inside the step loop).
+- **The cause:** the frame loop capped each step at 50 ms, so below 20 fps the race ran in slow motion (75% speed at 15 fps, 50% at 10 fps). The official time is the server clock from GO to the line, so a weak laptop or old phone posted slower times for the same driving.
+- **The fix:** a long frame is now simulated as several steps of at most 50 ms each, up to 250 ms a frame. Camera, HUD and audio still run once per drawn frame.
+  - Game time now matches real time down to **4 fps**. Fast frames are unchanged.
+  - The wall, solid and car-to-car checks run inside every step, so a big frame can't push a car through anything.
+  - Measured in the test browser (software rendering): at 0.9 fps, race time was 27% of real time (the 250 ms ceiling), against about 3.5% before.
 
 ## 2. Scale the cost automatically (some of this has shipped)
 
@@ -29,13 +26,22 @@
 | Draw distance and smog per preset | Shipped | Far scenery skipped behind the fog |
 | Warm-up draw | Shipped | No first-sight shader and upload hitches |
 | GPU tier from a benchmark database (`detect-gpu`, tiers 0–3 by measured fps) | Next | Better first choice than a name match; tier 0 = no WebGL, show a message |
-| Adaptive detail: drop shadows, then the ink pass, then smog when frame time stays high | Next | Today only resolution adapts |
-| Pumpkin patches as a lower-poly LOD | Next | 520 pumpkins × 256 triangles = 133k triangles at the start line |
-| Lower-resolution Hollow Ridge ground on Saver | Next | Ground is one 115k-triangle mesh |
-| Merge static scenery and fewer draw calls (~200 → under 100) | Later | Weak CPUs struggle more with draw calls than with triangles |
+| Adaptive detail | Shipped 23 Oct | Once frames stay late at half resolution, it drops shadows, then the ink outline pass, then two thirds of the smog. Each comes back after two good checks at full resolution |
+| Lighter pumpkins on Saver | Shipped 23 Oct | The patch and yard pumpkins switch to a model with about half the triangles |
+| Fewer draw calls | Shipped 23 Oct | Bats are 2 instanced meshes (were 54 meshes); each ghost is 2 meshes (was 6); idle particle systems are skipped, with no draw and no upload |
+| Lower-resolution Hollow Ridge ground on Saver | Not done | The ground is one 115k-triangle mesh, but a coarser grid could poke through the road on the embankments. Intel UHD handles the triangles; pixels and draw calls are its limit |
+| Merge static scenery further (cars are now the biggest share) | Later | The 5 cars are ~90 draw calls (wheels, lights and light sprites). Merging them is a phase-2 job |
 | Compressed textures (KTX2/Basis) | Later | Less memory on 2–3 GB phones; faster uploads |
 
-Measured at the start line (Saver): 496k triangles in 187 draw calls; High: 830k in 283.
+Measured at the start line during a race, in the test browser:
+
+| Preset | Before (22 Oct) | After (23 Oct) |
+|---|---|---|
+| Saver | 501k triangles, 201 draw calls | 428–452k triangles, 149–164 draw calls |
+| Balanced | 502k, 201 | 534k, 144 |
+| High | 857k, 327 | 905k, 232 |
+
+The triangle counts move by ±5% with where the AI cars are on screen.
 
 ## 3. Newer renderer (after the event)
 
@@ -54,8 +60,7 @@ Measured at the start line (Saver): 496k triangles in 187 draw calls; High: 830k
 
 ## Recommendation
 
-1. **Before 29 Oct:** fixed-step physics (§1), so times are fair on every device.
-2. **Before 29 Oct, if time allows:** pumpkin LOD and lower-resolution ground on Saver, plus adaptive detail (§2).
+1. **Done, 23 Oct:** fixed-step physics (§1), lighter pumpkins on Saver, fewer draw calls and adaptive detail (§2).
 3. **Phase 2:** WebGPU renderer and draw-call merging.
 4. **Later, optional:** cloud streaming for the weakest devices.
 

@@ -50,6 +50,36 @@ const EV = (() => {
   function bench(c){ c.bench = true; c.group.visible = false; c.x = c.z = 1e5; c.vx = c.vz = c.f = 0; }
   function setVehicle(kind){ if (!kinds().includes(kind)) kind = 'truck'; vehicle = kind; setKind(player, kind); try { applySkin(); } catch(_){} }
 
+  // ---------- warm-up: draw everything once, so nothing compiles or uploads mid-race ----------
+  // A shader is compiled and a model or texture is sent to the graphics card the first time it is drawn. Normally that is when
+  // it first comes into view (the manor over the hill, the castle, the spider on the last lap), and on a slower machine that
+  // shows as a hitch. This draws the whole world once, everything forced visible and un-culled, in the same render path as a
+  // normal frame (so the same shader variants), then puts everything back and draws the real frame in the same task, so the
+  // warm-up frame is never on screen.
+  let warmT = 0;
+  // Your car's lamp group (a spot and a point light) blinks off for a moment after a crash recovery and in the inspector, and
+  // the number of lights is part of every lit shader, so both states are warmed: with your lamps and without.
+  function prewarm(){
+    const t0 = performance.now(), L = player._lights;
+    warmPass();
+    if (L && L.g){ const v = L.g.visible; L.g.visible = !v; warmPass(); L.g.visible = v; }
+    renderer.shadowMap.needsUpdate = true; try { renderFrame(); } catch(_){}
+    return Math.round(performance.now() - t0);
+  }
+  function warmPass(){
+    const saved = [], lights = [];
+    // lights keep their real on/off state: the number of lights is part of every lit shader, so warming with extra lights
+    // (the inspector UFO's, a hidden lamp group) would compile the wrong variants
+    const shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+    scene.traverse(o => { if (o.isLight) lights.push(o, shown(o)); });
+    scene.traverse(o => { saved.push(o, o.visible, o.frustumCulled); o.visible = true; o.frustumCulled = false; });
+    for (let i = 0; i < lights.length; i += 2) lights[i].visible = lights[i+1];
+    try { renderer.shadowMap.needsUpdate = true; renderFrame(); } catch(e){ console.warn('prewarm', e); }
+    for (let i = 0; i < saved.length; i += 3){ saved[i].visible = saved[i+1]; saved[i].frustumCulled = saved[i+2]; }
+  }
+  // models arrive over the first seconds (manor, castle, witches, spiders, lanterns): warm again as they land
+  function warmSoon(){ clearTimeout(warmT); [400, 4000, 12000].forEach((ms, k) => { const t = setTimeout(() => { if (state === 'menu') prewarm(); }, ms); if (!k) warmT = t; }); }
+
   // ---------- the lobby backdrop: Hollow Ridge, your vehicle turning on the grid ----------
   function toLobby(){
     E.online = null; E.practice = false;
@@ -57,14 +87,14 @@ const EV = (() => {
     unbench(); useWorld('hollow'); placeOnGrid(); propsReset(); surpriseReset();
     $('res').hidden = true; $('menu').hidden = true; $('pauseBtn').hidden = true; $('finBanner').hidden = true; $('gaps').hidden = true;
     document.body.classList.add('inmenu'); document.body.classList.remove('inresults', 'evRacing', 'evPractice');
-    camH = player.h; snapCam();
+    camH = player.h; snapCam(); warmSoon();
   }
 
   // ---------- practice: alone on the Practice Grid, endless laps ----------
   function startPractice(kind){
     E.online = null; E.practice = true; unbench(); useWorld('demo'); setVehicle(kind);
     for (const c of cars) if (!c.player) bench(c);
-    tutor.on = false; startRace(); for (const c of cars) if (!c.player) bench(c);
+    tutor.on = false; startRace(); for (const c of cars) if (!c.player) bench(c); prewarm();
     document.body.classList.add('evPractice'); if (VOX) VOX.say('practice', 900);
   }
   function swapVehicle(kind){
@@ -91,7 +121,7 @@ const EV = (() => {
     tutor.on = false;
     // the countdown is 3 s to GO: start it so GO lands on the shared start time
     const wait = Math.max(0, cfg.goIn - 3000);
-    E.online.timer = setTimeout(() => { if (!E.online) return; startRace(); countT = .6 + Math.max(0, (E.online.goAt - now())/1000); E.online.started = true;
+    E.online.timer = setTimeout(() => { if (!E.online) return; startRace(); prewarm(); countT = .6 + Math.max(0, (E.online.goAt - now())/1000); E.online.started = true;
       document.body.classList.add('evRacing'); }, wait);
   }
   function leaveOnline(){ if (E.online && E.online.timer) clearTimeout(E.online.timer); toLobby(); }
@@ -153,6 +183,9 @@ const EV = (() => {
     get vehicle(){ return vehicle; }, get state(){ return state; }, get lap(){ return player.laps; }, get raceTime(){ return raceTime; },
     say(id, delay){ return VOX ? VOX.say(id, delay) : false; },
     mute(){ toggleMute(); return muted; }, get muted(){ return muted; },
+    prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
+    get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
+    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); },
   };
 })();
 window.__EV = EV;

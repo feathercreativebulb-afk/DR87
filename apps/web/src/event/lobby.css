@@ -155,3 +155,11 @@ body.touchmode #evPracInfo { top: 64px; bottom: auto; width: min(380px, calc(100
 body.touchmode #ev[data-view="practice"] .evSound, body.touchmode #ev[data-view="race"] .evSound { display: none; }
 body.touchmode.evRacing .evCorner#evQuit { top: calc(50% - 46px); }
 body.evPractice .stat:has(#pos), body.evPractice .stat:has(#lap) { display: none !important; }
+
+/* graphics preset: Saver / Balanced / High */
+.evGfx { margin-top: 12px; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; }
+.evGfx > span { font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+#evGfx { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 3px; border-radius: 10px; background: rgba(12, 7, 24, .6); border: 1px solid var(--line); }
+#evGfx button { border: 0; border-radius: 7px; padding: 6px 4px; background: none; font-size: 12px !important; font-weight: 600 !important; color: var(--dim); }
+#evGfx button[aria-checked="true"] { background: rgba(157, 107, 255, .3); color: var(--ink); }
+#evGfxNote { grid-column: 2; font-size: 11px; color: var(--faint); }

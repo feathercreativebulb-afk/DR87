@@ -82,6 +82,9 @@ rep("try { const sw = localStorage.getItem('dustrunner-world'); if (sw && WORLDS
 a = html.index("window.__DR87 = {"); b = html.index("};", a) + 2
 html = html[:a] + "/* (the Model Lab's window.__DR87 handle is left out of the event build) */" + html[b:]
 
+# desktop starts on Balanced (60 fps cap, light shadows) instead of High: event players bring all kinds of laptops
+rep("let quality = IS_TOUCH ? 'saver' : 'high';", "let quality = IS_TOUCH ? 'saver' : 'balanced';")
+
 # ---------- styles: name tags over other racers ----------
 css = """
 /* DR87 Halloween event */

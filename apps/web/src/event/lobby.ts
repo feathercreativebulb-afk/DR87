@@ -14,7 +14,7 @@ interface EVGame {
   vehicles(): Vehicle[]; setVehicle(k: string): void; toLobby(): void; startPractice(k: string): void; swapVehicle(k: string): boolean;
   startOnline(cfg: { myKind: string; mySlot: number; rivals: { id: string; tag: string; kind: string; slot: number }[]; goIn: number }): void;
   leaveOnline(): void; netFeed(id: string, s: unknown): void; netLeft(id: string): void; say(id: string, delay?: number): boolean;
-  mute(): boolean; readonly muted: boolean; readonly vehicle: string; readonly online: boolean; readonly practice: boolean;
+  mute(): boolean; readonly muted: boolean; readonly quality: string; qualities(): { id: string; name: string; note: string }[]; setQuality(q: string): void; readonly vehicle: string; readonly online: boolean; readonly practice: boolean;
 }
 declare global { interface Window { __EV?: EVGame } }
 
@@ -119,6 +119,13 @@ export async function start(): Promise<void> {
   $('#evPractice').addEventListener('click', () => { G.startPractice(S.kind); void ev.present('practice'); show('practice'); flashInfo(); });
   $('#evSwap').addEventListener('click', () => { const o = $('.evPrac').classList.toggle('open'); $('#evSwap').setAttribute('aria-expanded', String(o)); });
   $('#evPracBack').addEventListener('click', () => { G.toLobby(); void ev.present('lobby'); show('lobby'); });
+  function drawGfx() {
+    const qs = G.qualities(), cur = G.quality;
+    html($('#evGfx'), qs.map((q) => `<button type="button" role="radio" aria-checked="${q.id === cur}" data-q="${q.id}">${esc(q.name.replace('Battery saver', 'Saver'))}</button>`).join(''));
+    $('#evGfxNote').textContent = qs.find((q) => q.id === cur)?.note ?? '';
+  }
+  $('#evGfx').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-q]'); if (!b) return; G.setQuality(b.dataset.q!); drawGfx(); });
+  drawGfx();
   $('#evSound').addEventListener('click', () => { const m = G.mute(); $('#evSound').textContent = m ? '🔇' : '🔊'; });
   $('#evAnn').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-join]'); if (b) joinRace(b.dataset.join); });
   $('#evLeave').addEventListener('click', async () => { if (S.season && S.raceId) await ev.leave(S.season, S.raceId); endRace(); show('lobby'); });
@@ -276,6 +283,7 @@ const SHELL = `
     <div class="evVeh"></div><p class="evVinfo"></p>
     <div class="evBtns"><button type="button" class="evBig" id="evRace"></button><button type="button" class="evGhost" id="evPractice">Practice<small>learn the vehicles · no hazards</small></button></div>
     <p class="evStats"><span id="evStats"></span> <span id="evRacing"></span></p>
+    <div class="evGfx" role="radiogroup" aria-label="Graphics"><span>Graphics</span><div id="evGfx"></div><small id="evGfxNote"></small></div>
   </div>
   <div data-v="seat" class="evSeat">
     <h2>Your race</h2>

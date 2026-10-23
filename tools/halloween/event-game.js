@@ -80,6 +80,30 @@ const EV = (() => {
   // models arrive over the first seconds (manor, castle, witches, spiders, lanterns): warm again as they land
   function warmSoon(){ clearTimeout(warmT); [400, 4000, 12000].forEach((ms, k) => { const t = setTimeout(() => { if (state === 'menu') prewarm(); }, ms); if (!k) warmT = t; }); }
 
+  // ---------- slower graphics chips: shorter view distance, thinner smog ----------
+  // Fog already hides the far distance, so on Saver and Balanced the camera stops drawing just past where the fog closes in:
+  // far scenery (most of the lanterns, pumpkins and trees) is skipped instead of drawn into the fog. The graveyard smog is a
+  // big stack of see-through sprites, the heaviest thing for a laptop's built-in graphics, so it is thinned too.
+  const REACH = { saver:{ far:1150, smog:.4 }, balanced:{ far:1900, smog:.75 }, high:{ far:3200, smog:1 } };
+  function applyReach(){
+    const R = REACH[quality] || REACH.high;
+    camera.far = R.far; camera.updateProjectionMatrix();
+    if (scene.fog && world.fog){ scene.fog.far = Math.min(world.fog[2], R.far - 60); scene.fog.near = Math.min(world.fog[1], scene.fog.far*.3); }
+    try { if (HR.smog && HR.smog.m.geometry) HR.smog.m.geometry.instanceCount = Math.max(1, Math.round(HR_SMOG_N*R.smog)); } catch(_){}
+  }
+  // Saver on a computer: keep 60 fps (30 felt choppy at the event's speeds) and save the work on pixels instead, rendering at
+  // 80% resolution with no shadows; when frames still run late the game's dynamic resolution steps down further. Phones keep 30 fps.
+  if (!IS_TOUCH){ Object.assign(QUALITY.saver, { fps:60, dpr:.8, note:'60 fps, lower resolution, no shadows' }); if (quality === 'saver') applyQuality(); }
+  // first visit: a laptop's built-in graphics (Intel, or a phone-class chip) starts on Saver
+  (function pickStartQuality(){
+    let saved = null; try { saved = localStorage.getItem('dustrunner-quality'); } catch(_){}
+    if (saved) return;
+    try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+      const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+      if (/Intel|UHD|Iris|HD Graphics|Mali|Adreno|PowerVR|SwiftShader|llvmpipe|Microsoft Basic/i.test(name)){ quality = 'saver'; applyQuality(); }
+    } catch(_){}
+  })();
+
   // ---------- the lobby backdrop: Hollow Ridge, your vehicle turning on the grid ----------
   function toLobby(){
     E.online = null; E.practice = false;
@@ -87,12 +111,12 @@ const EV = (() => {
     unbench(); useWorld('hollow'); placeOnGrid(); propsReset(); surpriseReset();
     $('res').hidden = true; $('menu').hidden = true; $('pauseBtn').hidden = true; $('finBanner').hidden = true; $('gaps').hidden = true;
     document.body.classList.add('inmenu'); document.body.classList.remove('inresults', 'evRacing', 'evPractice');
-    camH = player.h; snapCam(); warmSoon();
+    camH = player.h; snapCam(); applyReach(); warmSoon();
   }
 
   // ---------- practice: alone on the Practice Grid, endless laps ----------
   function startPractice(kind){
-    E.online = null; E.practice = true; unbench(); useWorld('demo'); setVehicle(kind);
+    E.online = null; E.practice = true; unbench(); useWorld('demo'); applyReach(); setVehicle(kind);
     for (const c of cars) if (!c.player) bench(c);
     tutor.on = false; startRace(); for (const c of cars) if (!c.player) bench(c); prewarm();
     document.body.classList.add('evPractice'); if (VOX) VOX.say('practice', 900);
@@ -107,7 +131,7 @@ const EV = (() => {
   // ---------- online race ----------
   // cfg: { myKind, mySlot (0..2, by join order), rivals:[{id, tag, kind, slot}], goIn (ms until GO) }
   function startOnline(cfg){
-    E.practice = false; unbench(); useWorld('hollow'); setVehicle(cfg.myKind);
+    E.practice = false; unbench(); useWorld('hollow'); applyReach(); setVehicle(cfg.myKind);
     level = 'normal'; rollRivals();
     const order = [2, 0, 1];                         // grid slot per human, by join order; AI fill the rest
     player.gridSlot = order[cfg.mySlot] ?? 2;
@@ -185,7 +209,17 @@ const EV = (() => {
     mute(){ toggleMute(); return muted; }, get muted(){ return muted; },
     prewarm, programKeys(){ return renderer.info.programs.map(p => p.name + '|' + p.cacheKey); },
     get quality(){ return quality; }, qualities(){ return Object.entries(QUALITY).map(([id, q]) => ({ id, name:q.name, note:q.note })); },
-    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); },
+    setQuality(q){ if (!QUALITY[q]) return; quality = q; try { localStorage.setItem('dustrunner-quality', q); } catch(_){} applyQuality(); applyReach(); },
+    breakdown(){   // debug: where the triangles go in the current view
+      const fr = new THREE.Frustum(), M = new THREE.Matrix4(); camera.updateMatrixWorld(); M.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); fr.setFromProjectionMatrix(M);
+      const out = {}, shown = o => { for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; };
+      scene.traverse(o => { if (!o.isMesh || !shown(o) || !o.geometry) return; if (o.frustumCulled){ if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); if (!fr.intersectsObject(o)) return; }
+        const g = o.geometry, t = (g.index ? g.index.count : g.attributes.position.count)/3*(o.isInstancedMesh ? o.count : (g.instanceCount || 1));
+        let k = o; while (k.parent && k.parent !== worldGroup && k.parent !== scene) k = k.parent; const per = Math.round((g.index ? g.index.count : g.attributes.position.count)/3); const key = (k.name || k.type) + (k.userData.car ? ':car' : '') + ':' + (o.material && o.material.type) + (k === o ? ' per' + per + (o.isInstancedMesh ? ' x' + o.count : '') + (o.material && o.material.map ? ' tex' : '') : '');
+        out[key] = (out[key] || 0) + t; });
+      return Object.entries(out).sort((a, b) => b[1] - a[1]).slice(0, 25).map(([k, v]) => k + ' ' + Math.round(v/1000) + 'k');
+    },
+    perf(){ const ar = renderer.info.autoReset; renderer.info.autoReset = false; renderer.info.reset(); renderFrame(); const r = renderer.info.render, out = { tris:r.triangles, calls:r.calls, far:camera.far, q:quality }; renderer.info.autoReset = ar; return out; },
   };
 })();
 window.__EV = EV;

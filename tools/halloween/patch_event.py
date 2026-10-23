@@ -85,6 +85,9 @@ html = html[:a] + "/* (the Model Lab's window.__DR87 handle is left out of the e
 # desktop starts on Balanced (60 fps cap, light shadows) instead of High: event players bring all kinds of laptops
 rep("let quality = IS_TOUCH ? 'saver' : 'high';", "let quality = IS_TOUCH ? 'saver' : 'balanced';")
 
+# dynamic resolution may go down to half resolution (was 60%) on a struggling laptop
+rep("if (avg > target*1.3 && dynScale > .6){ dynScale = Math.max(.6, dynScale - .12); applyPixelRatio(); }", "if (avg > target*1.3 && dynScale > .5){ dynScale = Math.max(.5, dynScale - .12); applyPixelRatio(); }")
+
 # ---------- styles: name tags over other racers ----------
 css = """
 /* DR87 Halloween event */
